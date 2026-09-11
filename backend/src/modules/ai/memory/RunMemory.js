@@ -1,4 +1,4 @@
-import AgentRun from "../../../models/mongoose/agentRun.model.js";
+import AgentRun from "../../../models/agentRun.model.js";
 
 /**
  * @file Run Memory — read access to past AgentRun outcomes.

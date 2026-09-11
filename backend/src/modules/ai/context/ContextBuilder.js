@@ -1,5 +1,5 @@
-import Company from "../../../models/mongoose/company.model.js";
-import BrandProfile from "../../../models/mongoose/brandProfile.model.js";
+import Company from "../../../models/company.model.js";
+import BrandProfile from "../../../models/brandProfile.model.js";
 
 /**
  * @file Builds the ambient AgentContext for a run from company and brand data.
