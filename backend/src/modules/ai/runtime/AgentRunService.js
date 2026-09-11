@@ -1,4 +1,4 @@
-import AgentRun from "../../../../models/agentRun.model.js";
+import AgentRun from "../../../models/mongoose/agentRun.model.js";
 
 /**
  * @file Persistence helpers for the AgentRun lifecycle.

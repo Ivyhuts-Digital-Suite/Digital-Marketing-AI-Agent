@@ -1,4 +1,4 @@
-import AgentRun from "../../../../models/agentRun.model.js";
+import AgentRun from "../../../models/mongoose/agentRun.model.js";
 
 /**
  * @file Conversation Memory (Short-Term Memory) — per-conversation run history.
