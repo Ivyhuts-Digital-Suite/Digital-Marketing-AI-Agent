@@ -4,7 +4,7 @@ import { buildContext } from "../context/ContextBuilder.js";
 import executionEngine from "../runtime/ExecutionEngine.js";
 import { createRun, completeRun, failRun } from "../runtime/AgentRunService.js";
 import { logEvent } from "../runtime/Logger.js";
-import agentRegistry from "../agents/AgentRegistry.js";
+import { selectAgentForCapability } from "./AgentSelector.js";
 
 /**
  * @file Top-level orchestrator entry point.
@@ -29,9 +29,11 @@ import agentRegistry from "../agents/AgentRegistry.js";
  * @returns {import("../runtime/ExecutionEngine.js").StepExecutor} An async executor for this step.
  */
 function resolveExecutor(step, message, context) {
-  const agent = agentRegistry.getByCapability(step.capability);
+  let agent;
 
-  if (!agent) {
+  try {
+    agent = selectAgentForCapability(step.capability);
+  } catch {
     return async () => {
       throw {
         code: "MISSING_DATA",
