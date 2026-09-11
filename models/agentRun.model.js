@@ -58,15 +58,23 @@ const AgentRunSchema = new mongoose.Schema(
     ],
 
     steps: [
-      {
-        stepNumber: Number,
-        type: String,
-        input: mongoose.Schema.Types.Mixed,
-        output: mongoose.Schema.Types.Mixed,
-        status: String,
-        startedAt: Date,
-        completedAt: Date
-      }
+      new mongoose.Schema(
+        {
+          stepNumber: Number,
+          name: String,
+          type: String,
+          input: mongoose.Schema.Types.Mixed,
+          output: mongoose.Schema.Types.Mixed,
+          status: String,
+          error: {
+            code: String,
+            message: String
+          },
+          attempts: Number,
+          startedAt: Date,
+          completedAt: Date
+        }
+      )
     ],
 
     toolCalls: [
