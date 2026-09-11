@@ -1,6 +1,7 @@
 import { shouldRetry, wait } from "./RetryManager.js";
 import { validateOutput } from "../validation/Validator.js";
 import { addStep } from "./AgentRunService.js";
+import { logEvent } from "./Logger.js";
 
 /**
  * @file Executes a plan's steps against an AgentRun, with retry and
@@ -61,6 +62,11 @@ export class ExecutionEngine {
    * @returns {Promise<StepResult>} The step's outcome.
    */
   async executeStep(runId, step, executor, schema) {
+    logEvent(runId, "step_started", {
+      stepNumber: step.stepNumber,
+      name: step.name
+    });
+
     let attemptNumber = 0;
 
     // eslint-disable-next-line no-constant-condition
@@ -77,6 +83,11 @@ export class ExecutionEngine {
             name: step.name,
             status: "completed",
             output,
+            attempts: attemptNumber + 1
+          });
+
+          logEvent(runId, "step_completed", {
+            stepNumber: step.stepNumber,
             attempts: attemptNumber + 1
           });
 
@@ -104,6 +115,11 @@ export class ExecutionEngine {
         status: "failed",
         error: { code: error.code, message: error.message },
         attempts: attemptNumber + 1
+      });
+
+      logEvent(runId, "step_failed", {
+        stepNumber: step.stepNumber,
+        error: error.code || error.message
       });
 
       return { success: false, error };

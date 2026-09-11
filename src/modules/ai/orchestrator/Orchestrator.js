@@ -3,6 +3,7 @@ import { createPlan } from "./Planner.js";
 import { buildContext } from "../context/ContextBuilder.js";
 import executionEngine from "../runtime/ExecutionEngine.js";
 import { createRun, completeRun, failRun } from "../runtime/AgentRunService.js";
+import { logEvent } from "../runtime/Logger.js";
 import agentRegistry from "../agents/AgentRegistry.js";
 
 /**
@@ -71,9 +72,21 @@ export async function runAgent({ organizationId, userId, companyId, message }) {
       context: { intent }
     });
 
+    logEvent(run._id, "run_started", { message });
+
     const context = await buildContext({ organizationId, companyId });
 
+    logEvent(run._id, "context_built", {
+      hasCompany: !!context.company,
+      hasBrand: !!context.brand
+    });
+
     const plan = createPlan(intent);
+
+    logEvent(run._id, "plan_generated", {
+      objective: plan.objective,
+      stepCount: plan.steps.length
+    });
 
     const executorResolver = (step) => resolveExecutor(step, message, context);
 
@@ -90,6 +103,10 @@ export async function runAgent({ organizationId, userId, companyId, message }) {
         cost: {}
       });
 
+      logEvent(run._id, "run_completed", {
+        outputCount: result.outputs.length
+      });
+
       return {
         success: true,
         runId: run._id,
@@ -103,6 +120,8 @@ export async function runAgent({ organizationId, userId, companyId, message }) {
       code: result.error?.code || "EXECUTION_FAILED",
       message: result.error?.message || "Plan execution failed"
     });
+
+    logEvent(run._id, "run_failed", { error: result.error });
 
     return {
       success: false,
