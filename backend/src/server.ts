@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db";
 import authRoutes from "./routes/auth.routes";
+import companyIntelligenceRoutes from "./routes/companyIntelligence.routes";
+import contentIntelligenceRoutes from "./routes/contentIntelligence.routes";
 
 dotenv.config();
 
@@ -32,6 +34,8 @@ app.post("/test", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/company-intelligence", companyIntelligenceRoutes);
+app.use("/api/content-intelligence", contentIntelligenceRoutes);
 
 // Test route
 app.get("/", (req, res) => {
