@@ -3,11 +3,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db";
 import authRoutes from "./routes/auth.routes";
+import strategyRoutes from "./routes/strategy.routes";
 
 dotenv.config();
 
 const app = express();
-
 
 // Middleware
 app.use(cors());
@@ -16,11 +16,6 @@ app.use(express.json());
 // MongoDB connection
 connectDB();
 console.log("SERVER FILE LOADED");
-// app.post("/test", (req, res) => {
-//   res.json({
-//     message: "POST route is working"
-//   });
-// });
 
 app.post("/test", (req, res) => {
   console.log("🔥 TEST ROUTE HIT");
@@ -32,6 +27,7 @@ app.post("/test", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/strategy", strategyRoutes);
 
 // Test route
 app.get("/", (req, res) => {
