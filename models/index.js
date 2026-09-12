@@ -14,6 +14,9 @@ import MarketingStrategy from "./marketingStrategy.model.js";
 import ContentAsset from "./contentAsset.model.js";
 import Content from "./content.model.js";
 import ContentCalendar from "./contentCalendar.model.js";
+import CreativeBrief from "./creativeBrief.model.js";
+import CreativeAsset from "./creativeAsset.model.js";
+import GenerationJob from "./generationJob.model.js";
 import Campaign from "./campaign.model.js";
 import CampaignAsset from "./campaignAsset.model.js";
 import AnalyticsSnapshot from "./analyticsSnapshot.model.js";
@@ -51,6 +54,9 @@ export {
   ContentAsset,
   Content,
   ContentCalendar,
+  CreativeBrief,
+  CreativeAsset,
+  GenerationJob,
   Campaign,
   CampaignAsset,
   AnalyticsSnapshot,

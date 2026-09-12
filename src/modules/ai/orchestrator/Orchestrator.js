@@ -25,10 +25,11 @@ import { selectAgentForCapability } from "./AgentSelector.js";
  * so ExecutionEngine's normal error handling path takes care of it.
  * @param {import("../orchestrator/Planner.js").PlanStep} step - The step needing an executor.
  * @param {string} message - The original request message.
+ * @param {*} creativeBrief - The creative brief for this run, if any.
  * @param {*} context - The context built for this run.
  * @returns {import("../runtime/ExecutionEngine.js").StepExecutor} An async executor for this step.
  */
-function resolveExecutor(step, message, context) {
+function resolveExecutor(step, message, creativeBrief, context) {
   let agent;
 
   try {
@@ -43,7 +44,7 @@ function resolveExecutor(step, message, context) {
     };
   }
 
-  return async () => agent.run({ step, message }, context);
+  return async () => agent.run({ step, message, creativeBrief }, context);
 }
 
 /**
@@ -53,6 +54,7 @@ function resolveExecutor(step, message, context) {
  * @property {string} [userId] - User who made the request, if any.
  * @property {string} [companyId] - Company to pull context for, if any.
  * @property {string} message - The free-form request message.
+ * @property {*} [creativeBrief] - The creative brief for this run, if any.
  */
 
 /**
@@ -62,7 +64,13 @@ function resolveExecutor(step, message, context) {
  * @param {RunAgentParams} params
  * @returns {Promise<Object>} The orchestration result.
  */
-export async function runAgent({ organizationId, userId, companyId, message }) {
+export async function runAgent({
+  organizationId,
+  userId,
+  companyId,
+  message,
+  creativeBrief
+}) {
   try {
     const intent = resolveIntent(message);
 
@@ -90,7 +98,8 @@ export async function runAgent({ organizationId, userId, companyId, message }) {
       stepCount: plan.steps.length
     });
 
-    const executorResolver = (step) => resolveExecutor(step, message, context);
+    const executorResolver = (step) =>
+      resolveExecutor(step, message, creativeBrief, context);
 
     const result = await executionEngine.executePlan(
       run._id,
