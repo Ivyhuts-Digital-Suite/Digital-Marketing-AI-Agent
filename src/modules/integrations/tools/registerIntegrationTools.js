@@ -4,6 +4,7 @@ import publishInstagramCarouselTool from "./publishInstagramCarouselTool.js";
 import publishInstagramReelTool from "./publishInstagramReelTool.js";
 import getInstagramProfileTool from "./getInstagramProfileTool.js";
 import getInstagramContentMetricsTool from "./getInstagramContentMetricsTool.js";
+import scheduleInstagramContentTool from "./scheduleInstagramContentTool.js";
 
 /**
  * @file Registers all known integration tools with the shared ToolRegistry.
@@ -19,3 +20,4 @@ toolRegistry.register(publishInstagramCarouselTool);
 toolRegistry.register(publishInstagramReelTool);
 toolRegistry.register(getInstagramProfileTool);
 toolRegistry.register(getInstagramContentMetricsTool);
+toolRegistry.register(scheduleInstagramContentTool);
