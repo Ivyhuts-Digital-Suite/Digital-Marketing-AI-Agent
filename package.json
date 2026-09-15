@@ -1,7 +1,15 @@
 {
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "start": "node src/server.js"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mongoose": "^9.9.5"
+  },
+  "devDependencies": {
+    "jest": "^30.5.1"
   }
 }
