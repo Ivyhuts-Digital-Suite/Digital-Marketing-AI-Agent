@@ -1,7 +1,9 @@
 import integrationAdapterFactory from "../adapters/IntegrationAdapterFactory.js";
 import Content from "../../../../models/content.model.js";
 import IntegrationExecution from "../../../../models/integrationExecution.model.js";
+import IntegrationAccount from "../../../../models/integrationAccount.model.js";
 import { logIntegrationAction } from "../services/AuditService.js";
+import IntegrationErrorCodes from "../errors/IntegrationErrorCodes.js";
 
 /**
  * @file Tool: publishes an approved Instagram carousel via the connected
@@ -22,13 +24,24 @@ const publishInstagramCarouselTool = {
 
     const content = await Content.findById(contentItemId);
     if (!content) {
-      return { success: false, error: "INVALID_CONTENT: content item not found" };
+      return {
+        success: false,
+        error: `${IntegrationErrorCodes.INVALID_CONTENT}: content item not found`
+      };
+    }
+
+    const account = await IntegrationAccount.findById(integrationAccountId);
+    if (!account || account.status !== "active") {
+      return {
+        success: false,
+        error: `${IntegrationErrorCodes.NOT_CONNECTED}: no active Instagram integration account found`
+      };
     }
 
     if (content.status !== "approved") {
       return {
         success: false,
-        error: `INVALID_LIFECYCLE_STATE: content status is "${content.status}", must be APPROVED to publish`
+        error: `${IntegrationErrorCodes.INVALID_LIFECYCLE_STATE}: content status is "${content.status}", must be APPROVED to publish`
       };
     }
 
@@ -50,7 +63,7 @@ const publishInstagramCarouselTool = {
       if (error.code === 11000) {
         return {
           success: false,
-          error: "DUPLICATE_OPERATION: this operation was already executed"
+          error: `${IntegrationErrorCodes.DUPLICATE_OPERATION}: this operation was already executed`
         };
       }
       throw error;
@@ -93,7 +106,10 @@ const publishInstagramCarouselTool = {
       execution.completedAt = new Date();
       await execution.save();
 
-      return { success: false, error: `PROVIDER_ERROR: ${error.message}` };
+      return {
+        success: false,
+        error: `${IntegrationErrorCodes.PROVIDER_ERROR}: ${error.message}`
+      };
     }
   }
 };
