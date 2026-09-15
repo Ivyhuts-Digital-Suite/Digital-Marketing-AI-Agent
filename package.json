@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "dotenv": "^17.4.2",
@@ -10,6 +11,8 @@
     "mongoose": "^9.9.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
     "jest": "^30.5.1"
   }
 }
