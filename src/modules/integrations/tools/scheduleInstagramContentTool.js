@@ -1,5 +1,6 @@
 import Content from "../../../../models/content.model.js";
 import IntegrationExecution from "../../../../models/integrationExecution.model.js";
+import { logIntegrationAction } from "../services/AuditService.js";
 
 /**
  * @file Tool: schedules an approved piece of Instagram content for
@@ -91,6 +92,20 @@ const scheduleInstagramContentTool = {
       };
       execution.completedAt = new Date();
       await execution.save();
+
+      await logIntegrationAction({
+        organizationId: context.organizationId,
+        actorType: "agent",
+        actorId: context.runId || "unknown",
+        action: "schedule_instagram_content",
+        entityType: "Content",
+        entityId: contentItemId,
+        newState: {
+          status: "scheduled",
+          scheduledAt: content.scheduledAt
+        },
+        metadata: { integrationAccountId, idempotencyKey, scheduledTimezone }
+      });
 
       return {
         success: true,

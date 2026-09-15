@@ -1,6 +1,7 @@
 import integrationAdapterFactory from "../adapters/IntegrationAdapterFactory.js";
 import Content from "../../../../models/content.model.js";
 import IntegrationExecution from "../../../../models/integrationExecution.model.js";
+import { logIntegrationAction } from "../services/AuditService.js";
 
 /**
  * @file Tool: publishes an approved piece of Instagram content via the
@@ -64,6 +65,20 @@ const publishInstagramPostTool = {
       execution.responseMetadata = result;
       execution.completedAt = new Date();
       await execution.save();
+
+      await logIntegrationAction({
+        organizationId: context.organizationId,
+        actorType: "agent",
+        actorId: context.runId || "unknown",
+        action: "publish_instagram_post",
+        entityType: "Content",
+        entityId: contentItemId,
+        newState: {
+          status: "published",
+          externalResourceId: result.externalResourceId
+        },
+        metadata: { integrationAccountId, idempotencyKey }
+      });
 
       return {
         success: true,
