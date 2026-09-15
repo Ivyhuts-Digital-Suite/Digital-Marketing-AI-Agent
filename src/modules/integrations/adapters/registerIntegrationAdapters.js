@@ -1,5 +1,6 @@
 import integrationAdapterFactory from "./IntegrationAdapterFactory.js";
 import { MetaInstagramAdapter } from "./MetaInstagramAdapter.js";
+import { MockGoogleAdsAdapter } from "./MockGoogleAdsAdapter.js";
 
 /**
  * @file Registers all known integration adapters with the shared
@@ -13,3 +14,4 @@ import { MetaInstagramAdapter } from "./MetaInstagramAdapter.js";
  */
 
 integrationAdapterFactory.register("meta", new MetaInstagramAdapter());
+integrationAdapterFactory.register("google_ads", new MockGoogleAdsAdapter());

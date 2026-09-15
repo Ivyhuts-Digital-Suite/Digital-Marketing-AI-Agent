@@ -5,6 +5,10 @@ import publishInstagramReelTool from "./publishInstagramReelTool.js";
 import getInstagramProfileTool from "./getInstagramProfileTool.js";
 import getInstagramContentMetricsTool from "./getInstagramContentMetricsTool.js";
 import scheduleInstagramContentTool from "./scheduleInstagramContentTool.js";
+import getGoogleCampaignInsightsTool from "./getGoogleCampaignInsightsTool.js";
+import getGoogleKeywordPerformanceTool from "./getGoogleKeywordPerformanceTool.js";
+import getGoogleAdPerformanceTool from "./getGoogleAdPerformanceTool.js";
+import getGoogleBudgetInsightsTool from "./getGoogleBudgetInsightsTool.js";
 
 /**
  * @file Registers all known integration tools with the shared ToolRegistry.
@@ -21,3 +25,7 @@ toolRegistry.register(publishInstagramReelTool);
 toolRegistry.register(getInstagramProfileTool);
 toolRegistry.register(getInstagramContentMetricsTool);
 toolRegistry.register(scheduleInstagramContentTool);
+toolRegistry.register(getGoogleCampaignInsightsTool);
+toolRegistry.register(getGoogleKeywordPerformanceTool);
+toolRegistry.register(getGoogleAdPerformanceTool);
+toolRegistry.register(getGoogleBudgetInsightsTool);
