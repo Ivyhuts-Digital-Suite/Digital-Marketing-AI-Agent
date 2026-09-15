@@ -9,6 +9,10 @@ import getGoogleCampaignInsightsTool from "./getGoogleCampaignInsightsTool.js";
 import getGoogleKeywordPerformanceTool from "./getGoogleKeywordPerformanceTool.js";
 import getGoogleAdPerformanceTool from "./getGoogleAdPerformanceTool.js";
 import getGoogleBudgetInsightsTool from "./getGoogleBudgetInsightsTool.js";
+import createEmailCampaignTool from "./createEmailCampaignTool.js";
+import segmentEmailAudienceTool from "./segmentEmailAudienceTool.js";
+import getEmailCampaignMetricsTool from "./getEmailCampaignMetricsTool.js";
+import getEmailPerformanceTool from "./getEmailPerformanceTool.js";
 
 /**
  * @file Registers all known integration tools with the shared ToolRegistry.
@@ -29,3 +33,7 @@ toolRegistry.register(getGoogleCampaignInsightsTool);
 toolRegistry.register(getGoogleKeywordPerformanceTool);
 toolRegistry.register(getGoogleAdPerformanceTool);
 toolRegistry.register(getGoogleBudgetInsightsTool);
+toolRegistry.register(createEmailCampaignTool);
+toolRegistry.register(segmentEmailAudienceTool);
+toolRegistry.register(getEmailCampaignMetricsTool);
+toolRegistry.register(getEmailPerformanceTool);
