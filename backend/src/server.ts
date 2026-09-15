@@ -5,6 +5,8 @@ import connectDB from "./config/db";
 import authRoutes from "./routes/auth.routes";
 import companyIntelligenceRoutes from "./routes/companyIntelligence.routes";
 import contentIntelligenceRoutes from "./routes/contentIntelligence.routes";
+import analyticsRoutes from "./routes/analytics.routes";
+import optimizationRoutes from "./routes/optimization.routes";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ app.post("/test", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/company-intelligence", companyIntelligenceRoutes);
 app.use("/api/content-intelligence", contentIntelligenceRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/optimization", optimizationRoutes);
 
 // Test route
 app.get("/", (req, res) => {
