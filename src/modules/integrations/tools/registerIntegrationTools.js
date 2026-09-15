@@ -13,6 +13,10 @@ import createEmailCampaignTool from "./createEmailCampaignTool.js";
 import segmentEmailAudienceTool from "./segmentEmailAudienceTool.js";
 import getEmailCampaignMetricsTool from "./getEmailCampaignMetricsTool.js";
 import getEmailPerformanceTool from "./getEmailPerformanceTool.js";
+import getLeadsTool from "./getLeadsTool.js";
+import getContactsTool from "./getContactsTool.js";
+import getPipelineTool from "./getPipelineTool.js";
+import getRevenueTool from "./getRevenueTool.js";
 
 /**
  * @file Registers all known integration tools with the shared ToolRegistry.
@@ -37,3 +41,7 @@ toolRegistry.register(createEmailCampaignTool);
 toolRegistry.register(segmentEmailAudienceTool);
 toolRegistry.register(getEmailCampaignMetricsTool);
 toolRegistry.register(getEmailPerformanceTool);
+toolRegistry.register(getLeadsTool);
+toolRegistry.register(getContactsTool);
+toolRegistry.register(getPipelineTool);
+toolRegistry.register(getRevenueTool);
