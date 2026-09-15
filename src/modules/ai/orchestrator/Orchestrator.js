@@ -44,7 +44,8 @@ function resolveExecutor(step, message, creativeBrief, context) {
     };
   }
 
-  return async () => agent.run({ step, message, creativeBrief }, context);
+  return async () =>
+    agent.run({ step, message, creativeBrief, params: step.params }, context);
 }
 
 /**
@@ -55,6 +56,7 @@ function resolveExecutor(step, message, creativeBrief, context) {
  * @property {string} [companyId] - Company to pull context for, if any.
  * @property {string} message - The free-form request message.
  * @property {*} [creativeBrief] - The creative brief for this run, if any.
+ * @property {*} [entities] - Known entities to merge into the resolved intent, if any.
  */
 
 /**
@@ -69,10 +71,11 @@ export async function runAgent({
   userId,
   companyId,
   message,
-  creativeBrief
+  creativeBrief,
+  entities
 }) {
   try {
-    const intent = resolveIntent(message);
+    const intent = { ...resolveIntent(message), entities };
 
     const run = await createRun({
       organizationId,
@@ -85,6 +88,7 @@ export async function runAgent({
     logEvent(run._id, "run_started", { message });
 
     const context = await buildContext({ organizationId, companyId });
+    context.organizationId = organizationId;
 
     logEvent(run._id, "context_built", {
       hasCompany: !!context.company,

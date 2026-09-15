@@ -102,6 +102,21 @@ export function createPlan(intent) {
       ];
       break;
 
+    case "publish_instagram_content":
+      steps = [
+        {
+          stepNumber: 1,
+          name: "Publish to Instagram",
+          capability: "publish_content",
+          params: {
+            contentItemId: intent.entities?.contentItemId,
+            integrationAccountId: intent.entities?.integrationAccountId,
+            idempotencyKey: `run-${Date.now()}`
+          }
+        }
+      ];
+      break;
+
     default:
       steps = [
         {
