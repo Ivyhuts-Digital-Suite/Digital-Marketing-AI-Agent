@@ -33,13 +33,13 @@ const AgentLearningSchema = new mongoose.Schema(
       required: true 
     }, 
  
-    evidence: [ 
-      { 
-        type: String, 
-        sourceId: mongoose.Schema.Types.ObjectId, 
-        value: mongoose.Schema.Types.Mixed 
-      } 
-    ], 
+    evidence: [
+      new mongoose.Schema({
+        type: String,
+        sourceId: mongoose.Schema.Types.ObjectId,
+        value: mongoose.Schema.Types.Mixed
+      })
+    ],
  
     confidence: Number, 
  
