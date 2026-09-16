@@ -23,7 +23,7 @@ export class NoViableTopicsError extends Error {
   }
 }
 
-/** Missing/invalid OPENAI_API_KEY, or another misconfiguration that prevents calling the LLM at all. */
+/** Missing/invalid GEMINI_API_KEY, or another misconfiguration that prevents calling Gemini at all. */
 export class ContentIntelligenceConfigurationError extends Error {
   constructor(reason: string) {
     super(`Content intelligence is not configured correctly: ${reason}`);
@@ -31,7 +31,7 @@ export class ContentIntelligenceConfigurationError extends Error {
   }
 }
 
-/** The OpenAI request itself failed (network, auth, rate limit, etc.). */
+/** The Gemini request itself failed (network, auth, rate limit, etc.). */
 export class ContentIntelligenceLlmRequestError extends Error {
   constructor(reason: string) {
     super(`Content intelligence LLM request failed: ${reason}`);
@@ -59,5 +59,13 @@ export class ContentPlanNotFoundError extends Error {
   constructor(planId: string) {
     super(`Content plan "${planId}" was not found.`);
     this.name = "ContentPlanNotFoundError";
+  }
+}
+
+/** The requested plan status transition isn't allowed from the plan's current status (e.g. finalizing a plan that isn't in "draft"). */
+export class InvalidContentPlanStatusTransitionError extends Error {
+  constructor(reason: string) {
+    super(`Invalid content plan status transition: ${reason}`);
+    this.name = "InvalidContentPlanStatusTransitionError";
   }
 }

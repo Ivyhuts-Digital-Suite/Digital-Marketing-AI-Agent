@@ -158,6 +158,7 @@ export async function generateContentPlan(input: GenerateContentPlanInput): Prom
         format: brief.format,
         hook: brief.hook,
         message: brief.coreMessage,
+        keyPoints: brief.keyPoints,
         cta: brief.cta,
         rationale: brief.rationale,
         evidence: brief.evidence ?? [],
