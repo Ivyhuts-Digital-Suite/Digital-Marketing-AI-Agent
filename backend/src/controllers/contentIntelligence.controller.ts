@@ -8,6 +8,7 @@ import {
   ContentPlanNotFoundError,
   InvalidContentIntelligenceInputError,
   InvalidContentIntelligenceLlmResponseError,
+  InvalidContentPlanStatusTransitionError,
   NoCompanyKnowledgeForContentError,
   NoViableTopicsError,
 } from "../services/contentIntelligence/errors";
@@ -39,6 +40,11 @@ function handleError(error: unknown, res: Response): void {
     return;
   }
 
+  if (error instanceof InvalidContentPlanStatusTransitionError) {
+    res.status(409).json({ message: error.message });
+    return;
+  }
+
   if (error instanceof ContentIntelligenceConfigurationError) {
     console.error("Content Intelligence Configuration Error:", error.message);
     res.status(503).json({ message: "Content intelligence generation is not available right now" });
@@ -47,6 +53,10 @@ function handleError(error: unknown, res: Response): void {
 
   if (error instanceof ContentIntelligenceLlmRequestError || error instanceof InvalidContentIntelligenceLlmResponseError) {
     console.error("Content Intelligence LLM Error:", error.message);
+    if (/Gemini API is currently unavailable|status.?503|temporarily busy/i.test(error.message)) {
+      res.status(503).json({ code: "GEMINI_TEMPORARILY_BUSY", message: "Gemini is temporarily busy. Please retry shortly" });
+      return;
+    }
     res.status(502).json({ message: "Content intelligence generation failed upstream, please try again" });
     return;
   }
@@ -129,6 +139,36 @@ export const getContentPlan = async (req: Request, res: Response): Promise<void>
     }
     const result = await contentIntelligenceService.getPlanWithItems(organizationId, planId);
     res.status(200).json(result);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * POST /api/content-intelligence/plans/:planId/finalize
+ *
+ * Same organization-membership caveat as generateContentPlan above: the
+ * caller proves organizationId by including it in the body, which is
+ * cross-checked against the plan's own organizationId at the database
+ * layer (see finalizePlan) - this rejects a mismatched org, but doesn't yet
+ * verify the authenticated user actually belongs to that organization.
+ */
+export const finalizeContentPlan = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { planId } = req.params;
+    const { organizationId } = req.body;
+
+    if (typeof planId !== "string") {
+      res.status(400).json({ message: "planId is required" });
+      return;
+    }
+    if (!organizationId || typeof organizationId !== "string") {
+      res.status(400).json({ message: "organizationId is required" });
+      return;
+    }
+
+    const plan = await contentIntelligenceService.finalizePlan(organizationId, planId);
+    res.status(200).json({ message: "Content plan finalized successfully", plan });
   } catch (error) {
     handleError(error, res);
   }

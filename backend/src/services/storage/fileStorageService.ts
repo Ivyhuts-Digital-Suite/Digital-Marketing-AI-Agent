@@ -4,23 +4,23 @@ import {
   StoredFileInput,
   StoredFileMetadata,
 } from "./storageProvider.interface";
-import { PendingStorageProvider } from "./pendingStorageProvider";
+import { getStorageProvider } from "./storageProviderFactory";
 
 /**
- * Storage layer for original uploaded files (Step 1C of the Company
- * Intelligence / Marketing Brain pipeline):
+ * Storage layer for generated/uploaded files - originally just Step 1C of
+ * the Company Intelligence pipeline (Upload Document -> Store Original File
+ * -> Create Knowledge Source -> ...), now also used by Content Studio to
+ * persist generated graphics/videos (see contentStudio/providers/gemini*).
  *
- *   Upload Document -> Store Original File -> Create Knowledge Source -> ...
- *
- * This service only handles the original file. It does not parse,
- * chunk, embed, or index anything. It delegates the actual storage
- * mechanics to an injected IStorageProvider so a real S3-compatible
- * backend can be plugged in later without changing callers.
+ * This service only handles the file itself. It does not parse, chunk,
+ * embed, or index anything. It delegates the actual storage mechanics to an
+ * injected IStorageProvider (see storageProviderFactory.ts) so a real
+ * S3-compatible backend can be plugged in later without changing callers.
  */
 export class FileStorageService {
   private readonly provider: IStorageProvider;
 
-  constructor(provider: IStorageProvider = new PendingStorageProvider()) {
+  constructor(provider: IStorageProvider = getStorageProvider()) {
     this.provider = provider;
   }
 

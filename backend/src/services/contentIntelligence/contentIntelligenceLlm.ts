@@ -1,4 +1,6 @@
-import OpenAI from "openai";
+import { z } from "zod";
+import { aiService } from "../ai/aiService";
+import { LLMProviderError } from "../ai/llmErrors";
 import {
   parseAndValidateBriefResponse,
   parseAndValidateTopicCandidates,
@@ -9,25 +11,9 @@ import { ContentAudience, ContentChannel, ContentFormat, ContentGoal, FunnelStag
 import { ContentIntelligenceConfigurationError, ContentIntelligenceLlmRequestError } from "./errors";
 import { ContentGapAnalysis, ContentIntelligenceContext } from "./types";
 
-const DEFAULT_MODEL = "gpt-4o-mini";
-
-function getModel(): string {
+function getModelOverride(): string | undefined {
   const model = process.env.CONTENT_INTELLIGENCE_MODEL;
-  return model && model.trim().length > 0 ? model.trim() : DEFAULT_MODEL;
-}
-
-function getOpenAiClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || apiKey.trim().length === 0) {
-    throw new ContentIntelligenceConfigurationError("OPENAI_API_KEY is not set in the environment");
-  }
-  return new OpenAI({ apiKey });
-}
-
-/** Strips anything that looks like an API key before an error can surface it. */
-function sanitizeErrorMessage(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error);
-  return raw.replace(/sk-[A-Za-z0-9_-]+/g, "[redacted]");
+  return model && model.trim().length > 0 ? model.trim() : undefined;
 }
 
 function formatCompanyBrain(context: ContentIntelligenceContext): string {
@@ -76,31 +62,29 @@ function formatGapAnalysis(gaps: ContentGapAnalysis): string {
   return gaps.recommendedFocus.length > 0 ? gaps.recommendedFocus.join("\n") : "(no content history yet - no gaps computed)";
 }
 
-const TOPIC_SCHEMA_DESCRIPTION = `{
-  "topics": [
-    {
-      "topic": string,
-      "angle": string,
-      "rationale": string,
-      "suggestedFunnelStage": "awareness" | "consideration" | "conversion" | "retention",
-      "suggestedContentPillar": string,
-      "relevance": number (0-100),
-      "strategicAlignment": number (0-100),
-      "audienceValue": number (0-100),
-      "novelty": number (0-100)
-    }
-  ]
-}`;
+const FUNNEL_STAGE_ENUM = z.enum(["awareness", "consideration", "conversion", "retention"]);
+
+const TOPIC_CANDIDATES_SCHEMA = z.object({
+  topics: z.array(
+    z.object({
+      topic: z.string(),
+      angle: z.string(),
+      rationale: z.string(),
+      suggestedFunnelStage: FUNNEL_STAGE_ENUM,
+      suggestedContentPillar: z.string(),
+      relevance: z.number(),
+      strategicAlignment: z.number(),
+      audienceValue: z.number(),
+      novelty: z.number(),
+    })
+  ),
+});
 
 const TOPIC_SYSTEM_PROMPT = `You are a B2B content strategist for a marketing platform.
 
 You ONLY use information explicitly present in the CONTEXT the user provides (company knowledge, strategy, research, content gaps). You never invent specific facts, statistics, competitor names, or market claims that are not present in the CONTEXT.
 
-The four score fields (relevance, strategicAlignment, audienceValue, novelty) are your own qualitative judgment given the CONTEXT, not a claim about external data - reasoning about them is fine even when research data is unavailable. Do not invent keyword or trend scores; those are intentionally not requested here.
-
-Respond with a single valid JSON object only - no markdown fences, no commentary, no extra keys - matching exactly this shape:
-
-${TOPIC_SCHEMA_DESCRIPTION}`;
+The four score fields (relevance, strategicAlignment, audienceValue, novelty) are your own qualitative judgment given the CONTEXT, not a claim about external data - reasoning about them is fine even when research data is unavailable, and each is a number from 0 to 100. Do not invent keyword or trend scores; those are intentionally not requested here.`;
 
 /** Pure/testable prompt builder - no network call. */
 export function buildTopicDiscoveryPrompt(
@@ -123,7 +107,7 @@ export function buildTopicDiscoveryPrompt(
     .join("\n\n");
 }
 
-/** Never fabricates a result: if OPENAI_API_KEY is missing, this throws before making any network call. */
+/** Never fabricates a result: if GEMINI_API_KEY is missing, this throws before making any network call. */
 export async function requestTopicCandidates(
   context: ContentIntelligenceContext,
   gaps: ContentGapAnalysis,
@@ -131,49 +115,40 @@ export async function requestTopicCandidates(
   count: number,
   funnelStage?: FunnelStage
 ): Promise<RawTopicCandidateWithScores[]> {
-  const client = getOpenAiClient();
-  const model = getModel();
   const userPrompt = buildTopicDiscoveryPrompt(context, gaps, goal, count, funnelStage);
 
-  let rawText: string | null | undefined;
+  let result;
   try {
-    const response = await client.chat.completions.create({
-      model,
+    result = await aiService.generateStructured({
+      system: TOPIC_SYSTEM_PROMPT,
+      prompt: userPrompt,
+      model: getModelOverride(),
       temperature: 0.5,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: TOPIC_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
+      maxTokens: 4096,
+      schema: TOPIC_CANDIDATES_SCHEMA,
     });
-    rawText = response.choices[0]?.message?.content;
   } catch (error) {
-    throw new ContentIntelligenceLlmRequestError(sanitizeErrorMessage(error));
+    if (error instanceof LLMProviderError && error.kind === "configuration") {
+      throw new ContentIntelligenceConfigurationError(error.message);
+    }
+    throw new ContentIntelligenceLlmRequestError(error instanceof Error ? error.message : String(error));
   }
 
-  if (!rawText) {
-    throw new ContentIntelligenceLlmRequestError("the model returned an empty response");
-  }
-
-  return parseAndValidateTopicCandidates(rawText);
+  return parseAndValidateTopicCandidates(JSON.stringify(result.data));
 }
 
-const BRIEF_SCHEMA_DESCRIPTION = `{
-  "hook": string,
-  "coreMessage": string,
-  "keyPoints": string[],
-  "cta": string,
-  "successMetric": string,
-  "rationale": string
-}`;
+const BRIEF_SCHEMA = z.object({
+  hook: z.string(),
+  coreMessage: z.string(),
+  keyPoints: z.array(z.string()),
+  cta: z.string(),
+  successMetric: z.string(),
+  rationale: z.string(),
+});
 
 const BRIEF_SYSTEM_PROMPT = `You are a B2B content brief writer for a marketing platform.
 
-You ONLY use information explicitly present in the CONTEXT the user provides. You never invent product claims, statistics, or facts not present in the CONTEXT. You must never include any claim listed under FORBIDDEN CLAIMS, even indirectly.
-
-Respond with a single valid JSON object only - no markdown fences, no commentary, no extra keys - matching exactly this shape:
-
-${BRIEF_SCHEMA_DESCRIPTION}`;
+You ONLY use information explicitly present in the CONTEXT the user provides. You never invent product claims, statistics, or facts not present in the CONTEXT. You must never include any claim listed under FORBIDDEN CLAIMS, even indirectly.`;
 
 export interface BriefPromptInput {
   goal: ContentGoal;
@@ -209,34 +184,29 @@ export function buildBriefPrompt(context: ContentIntelligenceContext, input: Bri
     .join("\n\n");
 }
 
-/** Never fabricates a result: if OPENAI_API_KEY is missing, this throws before making any network call. */
+/** Never fabricates a result: if GEMINI_API_KEY is missing, this throws before making any network call. */
 export async function requestContentBrief(
   context: ContentIntelligenceContext,
   input: BriefPromptInput
 ): Promise<RawBriefResponse> {
-  const client = getOpenAiClient();
-  const model = getModel();
   const userPrompt = buildBriefPrompt(context, input);
 
-  let rawText: string | null | undefined;
+  let result;
   try {
-    const response = await client.chat.completions.create({
-      model,
+    result = await aiService.generateStructured({
+      system: BRIEF_SYSTEM_PROMPT,
+      prompt: userPrompt,
+      model: getModelOverride(),
       temperature: 0.5,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: BRIEF_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
+      maxTokens: 2048,
+      schema: BRIEF_SCHEMA,
     });
-    rawText = response.choices[0]?.message?.content;
   } catch (error) {
-    throw new ContentIntelligenceLlmRequestError(sanitizeErrorMessage(error));
+    if (error instanceof LLMProviderError && error.kind === "configuration") {
+      throw new ContentIntelligenceConfigurationError(error.message);
+    }
+    throw new ContentIntelligenceLlmRequestError(error instanceof Error ? error.message : String(error));
   }
 
-  if (!rawText) {
-    throw new ContentIntelligenceLlmRequestError("the model returned an empty response");
-  }
-
-  return parseAndValidateBriefResponse(rawText);
+  return parseAndValidateBriefResponse(JSON.stringify(result.data));
 }

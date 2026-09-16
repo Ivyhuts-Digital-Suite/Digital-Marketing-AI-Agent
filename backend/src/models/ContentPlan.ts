@@ -9,7 +9,14 @@ const CONTENT_PLAN_DURATIONS: ContentPlanDuration[] = [
   "6_months",
   "custom",
 ];
-const CONTENT_PLAN_STATUSES: ContentPlanStatus[] = ["draft", "active", "completed", "archived"];
+const CONTENT_PLAN_STATUSES: ContentPlanStatus[] = [
+  "draft",
+  "active",
+  "finalized",
+  "in_progress",
+  "completed",
+  "archived",
+];
 
 /**
  * Phase 7 - Step 2: ContentPlan persistence model.

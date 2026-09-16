@@ -2,17 +2,23 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "prebuild": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "seed": "ts-node --transpile-only src/scripts/seed.ts",
+    "seed:ivyhuts": "ts-node --transpile-only src/scripts/seedIvyhuts.ts",
+    "test:media": "ts-node --transpile-only src/scripts/testMedia.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.22.0",
+    "@huggingface/inference": "^4.13.28",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
@@ -26,7 +32,8 @@
     "mongoose": "^9.9.5",
     "openai": "^7.15.0",
     "pdf-parse": "^2.4.5",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.2",
+    "zod": "^4.6.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

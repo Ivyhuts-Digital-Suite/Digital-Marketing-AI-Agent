@@ -127,7 +127,14 @@ export interface TopicScore {
 /** Planning cadence for a ContentPlan. A fixed vocabulary - startDate/endDate always carry the actual concrete range. */
 export type ContentPlanDuration = "1_week" | "2_weeks" | "1_month" | "3_months" | "6_months" | "custom";
 
-export type ContentPlanStatus = "draft" | "active" | "completed" | "archived";
+/**
+ * "active"/"completed"/"archived" predate the Content Studio workflow and
+ * are kept for backward compatibility with existing data. "finalized" and
+ * "in_progress" are the states the Content Studio generation flow actually
+ * drives: draft -> finalized (user locks the calendar) -> in_progress
+ * (first asset generation started) -> completed (future: all items done).
+ */
+export type ContentPlanStatus = "draft" | "active" | "finalized" | "in_progress" | "completed" | "archived";
 
 /**
  * A content plan: the top-level container that a strategy (and optionally
@@ -148,7 +155,25 @@ export interface ContentPlan {
   metadata?: Record<string, unknown>;
 }
 
-export type ContentItemStatus = "draft" | "scheduled" | "published" | "archived";
+/**
+ * "draft"/"scheduled"/"published"/"archived" predate the Content Studio
+ * generation workflow and are kept for backward compatibility. The
+ * generation lifecycle Content Studio drives is: planned (not yet briefed;
+ * "draft"/"scheduled" items are treated as "planned" for this purpose) ->
+ * brief_ready -> generating -> generated -> approved (future/manual) with
+ * failed as the error branch off "generating".
+ */
+export type ContentItemStatus =
+  | "draft"
+  | "scheduled"
+  | "published"
+  | "archived"
+  | "planned"
+  | "brief_ready"
+  | "generating"
+  | "generated"
+  | "approved"
+  | "failed";
 
 /**
  * One scheduled piece of content within a ContentPlan. Field names
@@ -171,6 +196,8 @@ export interface ContentItem {
   format: ContentFormat;
   hook: string;
   message: string;
+  /** Supporting points backing the core message - carried over from the ContentBrief that produced this item, so Creative Brief generation has real structured content to work from instead of re-deriving it. */
+  keyPoints: string[];
   cta: string;
   rationale: string;
   evidence?: ContentEvidenceReference[];

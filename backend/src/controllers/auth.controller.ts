@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import Organization from "../models/Organization";
+import OrganizationMembership from "../models/OrganizationMembership";
+import { generateUniqueOrganizationSlug } from "../utils/slug";
 
 export const registerUser = async (
   req: Request,
@@ -38,6 +41,32 @@ export const registerUser = async (
       password: hashedPassword,
     });
 
+    // Every user needs at least one organization to operate the app - auto-
+    // provision a starter one so the frontend never has to ask for a raw
+    // organizationId. No MongoDB transaction here: a plain standalone
+    // mongod (the common local/dev deployment for this project) does not
+    // support multi-document transactions at all, so registration would
+    // simply break there if this assumed replica-set support. Sequential
+    // creates with a manual compensating rollback work correctly on any
+    // deployment topology instead.
+    let organization;
+    try {
+      const orgName = `${user.name}'s Organization`;
+      const slug = await generateUniqueOrganizationSlug(orgName);
+      organization = await Organization.create({ name: orgName, slug });
+      await OrganizationMembership.create({ userId: user._id, organizationId: organization._id, role: "owner" });
+    } catch (orgError) {
+      console.error("Starter organization provisioning failed:", orgError);
+      if (organization) {
+        await Organization.deleteOne({ _id: organization._id }).catch(() => undefined);
+      }
+      await User.deleteOne({ _id: user._id }).catch(() => undefined);
+      res.status(500).json({
+        message: "Registration failed while setting up your organization. Please try again.",
+      });
+      return;
+    }
+
     res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -45,6 +74,11 @@ export const registerUser = async (
         name: user.name,
         email: user.email,
         role: user.role,
+      },
+      organization: {
+        id: organization._id,
+        name: organization.name,
+        slug: organization.slug,
       },
     });
   } catch (error) {

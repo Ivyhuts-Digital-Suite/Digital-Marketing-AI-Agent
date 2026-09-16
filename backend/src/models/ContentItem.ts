@@ -29,7 +29,18 @@ const CONTENT_FORMATS: ContentFormat[] = [
   "ad_copy",
   "ad_creative_brief",
 ];
-const CONTENT_ITEM_STATUSES: ContentItemStatus[] = ["draft", "scheduled", "published", "archived"];
+const CONTENT_ITEM_STATUSES: ContentItemStatus[] = [
+  "draft",
+  "scheduled",
+  "published",
+  "archived",
+  "planned",
+  "brief_ready",
+  "generating",
+  "generated",
+  "approved",
+  "failed",
+];
 
 /**
  * personaId is a plain string (not an ObjectId ref) because content.types'
@@ -69,6 +80,7 @@ export interface IContentItem extends Document {
   format: ContentFormat;
   hook: string;
   message: string;
+  keyPoints: string[];
   cta: string;
   rationale: string;
   evidence: IContentItemEvidence[];
@@ -114,6 +126,7 @@ const contentItemSchema = new Schema<IContentItem>(
 
     hook: { type: String, required: true },
     message: { type: String, required: true },
+    keyPoints: { type: [String], default: [] },
     cta: { type: String, required: true },
 
     rationale: { type: String, required: true },

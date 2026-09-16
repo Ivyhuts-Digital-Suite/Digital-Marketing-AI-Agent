@@ -13,7 +13,7 @@ export class NoCompanyKnowledgeError extends Error {
   }
 }
 
-/** Missing/invalid OPENAI_API_KEY, or another misconfiguration that prevents calling the LLM at all. */
+/** Missing/invalid GEMINI_API_KEY, or another misconfiguration that prevents calling Gemini at all. */
 export class CompanyIntelligenceConfigurationError extends Error {
   constructor(reason: string) {
     super(`Company intelligence generation is not configured correctly: ${reason}`);
@@ -21,7 +21,7 @@ export class CompanyIntelligenceConfigurationError extends Error {
   }
 }
 
-/** The OpenAI request itself failed (network, auth, rate limit, etc.). */
+/** The Gemini request itself failed (network, auth, rate limit, etc.). */
 export class LlmRequestError extends Error {
   constructor(reason: string) {
     super(`Company intelligence LLM request failed: ${reason}`);
