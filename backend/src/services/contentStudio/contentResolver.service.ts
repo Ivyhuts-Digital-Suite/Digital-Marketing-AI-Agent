@@ -49,3 +49,26 @@ export async function resolvePlanAndItem(
 
   return { plan, item };
 }
+
+/**
+ * Phase 9: resolves a single ContentItem by id and verifies `userId`
+ * belongs to its organization - the pattern every lifecycle endpoint
+ * (submit-review/approve/request-changes/archive/schedule/history/
+ * quality-check) uses, since they only ever receive :contentItemId, not a
+ * plan id. Mirrors creativeBriefService.ts::getCreativeBriefForRequest's
+ * existing single-id resolution style exactly.
+ */
+export async function resolveItemById(userId: string, contentItemId: unknown): Promise<IContentItem> {
+  if (typeof contentItemId !== "string" || !Types.ObjectId.isValid(contentItemId)) {
+    throw new InvalidContentStudioInputError("contentItemId is missing or invalid");
+  }
+
+  const item = await ContentItem.findById(contentItemId);
+  if (!item) {
+    throw new ContentItemNotFoundError(contentItemId);
+  }
+
+  await assertOrganizationMembership(userId, item.organizationId.toString());
+
+  return item;
+}

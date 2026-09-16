@@ -40,6 +40,10 @@ export interface ICreativeAsset extends Document {
   contentItemId: Types.ObjectId;
   creativeBriefId: Types.ObjectId;
   generationJobId?: Types.ObjectId;
+  /** Phase 9 - Step 13: the asset this one replaced, when this generation was a regeneration (e.g. after CHANGES_REQUESTED). Never set on a first generation. Old assets are never deleted - this is purely a "what replaced what" pointer for the audit trail/UI. */
+  previousAssetId?: Types.ObjectId;
+  /** Why this asset was regenerated (e.g. the reviewer's change-request comment). Absent on a first generation. */
+  regenerationReason?: string;
 
   type: CreativeAssetType;
   /** Free-form specialization, e.g. "instagram_post", "carousel_slide", "instagram_reel". */
@@ -72,6 +76,8 @@ const creativeAssetSchema = new Schema<ICreativeAsset>(
     contentItemId: { type: Schema.Types.ObjectId, ref: "ContentItem", required: true, index: true },
     creativeBriefId: { type: Schema.Types.ObjectId, ref: "CreativeBrief", required: true, index: true },
     generationJobId: { type: Schema.Types.ObjectId, ref: "GenerationJob" },
+    previousAssetId: { type: Schema.Types.ObjectId, ref: "CreativeAsset" },
+    regenerationReason: { type: String },
 
     type: { type: String, enum: CREATIVE_ASSET_TYPES, required: true },
     subtype: { type: String },

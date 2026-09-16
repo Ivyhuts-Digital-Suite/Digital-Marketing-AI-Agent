@@ -6,4 +6,6 @@ export const queryKeys = {
   contentAssets: (contentItemId: string) => ["content-assets", contentItemId] as const,
   creativeBrief: (contentItemId: string) => ["creative-brief", contentItemId] as const,
   generationJob: (jobId: string) => ["generation-job", jobId] as const,
+  contentHistory: (contentItemId: string) => ["content-history", contentItemId] as const,
+  qualityCheck: (contentItemId: string) => ["quality-check", contentItemId] as const,
 };

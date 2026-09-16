@@ -156,24 +156,42 @@ export interface ContentPlan {
 }
 
 /**
- * "draft"/"scheduled"/"published"/"archived" predate the Content Studio
- * generation workflow and are kept for backward compatibility. The
- * generation lifecycle Content Studio drives is: planned (not yet briefed;
- * "draft"/"scheduled" items are treated as "planned" for this purpose) ->
- * brief_ready -> generating -> generated -> approved (future/manual) with
- * failed as the error branch off "generating".
+ * Phase 9: three independent lifecycle axes, replacing the single
+ * `status` field a previous version of this file used to conflate them
+ * into (values back then: draft/scheduled/published/archived/planned/
+ * brief_ready/generating/generated/approved/failed). Splitting them keeps
+ * "has the media finished rendering", "has a human approved this", and
+ * "has this actually been scheduled/published" from being crammed into
+ * one enum that couldn't represent all three at once - e.g. "approved but
+ * regeneration failed" or "changes requested on already-scheduled content"
+ * were previously inexpressible.
+ *
+ * generationStatus: driven entirely by Content Studio's existing
+ * generation pipeline (creativeBriefService/graphicGenerationService/
+ * videoGenerationService) - unchanged in meaning, `"planned"` replaces the
+ * old default `"draft"` value to avoid colliding with approvalStatus's own
+ * `"draft"`.
  */
-export type ContentItemStatus =
-  | "draft"
-  | "scheduled"
-  | "published"
-  | "archived"
-  | "planned"
-  | "brief_ready"
-  | "generating"
-  | "generated"
-  | "approved"
-  | "failed";
+export type ContentGenerationStatus = "planned" | "brief_ready" | "generating" | "generated" | "failed";
+
+/**
+ * approvalStatus: the new Phase 9 human-review workflow, owned entirely by
+ * ContentLifecycleService - see services/contentStudio/contentLifecycleService.ts.
+ * AI (the quality-check service) may only ever drive draft -> review, on a
+ * passing quality gate; every other transition requires a human actor.
+ */
+export type ContentApprovalStatus = "draft" | "review" | "changes_requested" | "approved";
+
+/**
+ * publishingStatus: what has actually happened toward getting this content
+ * live. "archived" lives here (not as a separate boolean) because it can be
+ * reached from three different points (approved/scheduled/published) per
+ * the Phase 9 spec's transition table - it is fundamentally about where
+ * publishing stands, not a generic flag.
+ */
+export type ContentPublishingStatus = "unscheduled" | "scheduled" | "published" | "failed" | "archived";
+
+export type ContentPlatform = "instagram";
 
 /**
  * One scheduled piece of content within a ContentPlan. Field names
@@ -201,6 +219,28 @@ export interface ContentItem {
   cta: string;
   rationale: string;
   evidence?: ContentEvidenceReference[];
+  /** The Content Intelligence-planned calendar date - distinct from `scheduledAt`, the actual approved publish datetime set later by a human via the Schedule action (Phase 9). */
   scheduledDate: Date;
-  status: ContentItemStatus;
+
+  generationStatus: ContentGenerationStatus;
+  approvalStatus: ContentApprovalStatus;
+  publishingStatus: ContentPublishingStatus;
+  platform: ContentPlatform;
+
+  /** Set only once publishingStatus reaches "scheduled" - the actual publish datetime, always paired with scheduledTimezone. */
+  scheduledAt?: Date;
+  /** IANA timezone name (e.g. "Asia/Kolkata") the human picked when scheduling - never silently defaulted to UTC. */
+  scheduledTimezone?: string;
+  /** Set only once publishingStatus reaches "published". */
+  publishedAt?: Date;
+  /** The publishing provider's own identifier for the live post - never fabricated; absent until a real PublishingProvider reports one. */
+  externalPostId?: string;
+  /** Name of the PublishingProvider that published this (e.g. "mock", "instagram") - lets the UI/audit trail distinguish a real publish from a MockPublishingProvider run. */
+  publishingProvider?: string;
+
+  /** Set on every approve/request-changes/archive action. */
+  reviewerId?: string;
+  reviewedAt?: Date;
+  /** Free-text reviewer note - required when requesting changes, optional on approve/archive. */
+  reviewComment?: string;
 }

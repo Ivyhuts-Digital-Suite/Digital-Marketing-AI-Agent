@@ -1,5 +1,6 @@
 import ContentPlan from "../../models/ContentPlan";
 import { ensureCreativeBrief } from "./creativeBriefService";
+import { resetToDraftForRegeneration } from "./contentLifecycleService";
 import { resolvePlanAndItem } from "./contentResolver.service";
 import {
   FormatEngineMismatchError,
@@ -50,6 +51,11 @@ export async function prepareGeneration(
   expectedEngine: GenerationEngine
 ): Promise<ResolvedGenerationContext> {
   const { plan, item } = await resolvePlanAndItem(userId, contentPlanId, contentItemId);
+
+  // Explicitly requesting graphic/video generation is the "explicitly
+  // requested" regeneration trigger the spec requires - also authorizes
+  // moving CHANGES_REQUESTED content back to DRAFT.
+  await resetToDraftForRegeneration(item);
 
   if (plan.status !== "finalized" && plan.status !== "in_progress") {
     throw new PlanNotReadyForGenerationError(plan._id.toString(), plan.status);

@@ -13,7 +13,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { CalendarSkeleton } from "@/components/calendar/CalendarSkeleton";
 import { CalendarStatusBanner } from "@/components/calendar/CalendarStatusBanner";
+import { CalendarFilters, DEFAULT_CALENDAR_FILTERS, filterContentItems, CalendarFilterState } from "@/components/calendar/CalendarFilters";
 import { ContentCalendarGrid } from "@/components/calendar/ContentCalendarGrid";
+import { ContentPipelineSummary } from "@/components/calendar/ContentPipelineSummary";
 import { ContentPlanHeader } from "@/components/calendar/ContentPlanHeader";
 import { ContentPlanSelector } from "@/components/calendar/ContentPlanSelector";
 import { ContentPlanSummary } from "@/components/calendar/ContentPlanSummary";
@@ -38,6 +40,7 @@ export default function CalendarPage() {
 
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [isFinalizeOpen, setIsFinalizeOpen] = useState(false);
+  const [filters, setFilters] = useState<CalendarFilterState>(DEFAULT_CALENDAR_FILTERS);
 
   async function handleGenerate(values: GenerateContentPlanFormValues) {
     if (!organizationId) return;
@@ -97,6 +100,7 @@ export default function CalendarPage() {
   const plan = planQuery.data?.plan;
   const items = planQuery.data?.items ?? [];
   const canFinalize = plan?.status === "draft";
+  const filteredItems = filterContentItems(items, filters);
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,9 +130,11 @@ export default function CalendarPage() {
       {plan && (
         <>
           <ContentPlanSummary plan={plan} items={items} />
+          <ContentPipelineSummary items={items} />
           <CalendarStatusBanner status={plan.status} onFinalize={() => setIsFinalizeOpen(true)} />
+          <CalendarFilters value={filters} onChange={setFilters} />
           <ContentCalendarGrid
-            items={items}
+            items={filteredItems}
             onSelectItem={(item) => router.push(`/content-studio/${item._id}?planId=${plan._id}`)}
           />
         </>

@@ -74,7 +74,6 @@ async function loadExistingContent(organizationId: string): Promise<ExistingCont
     channel: item.channel,
     format: item.format,
     personaDescription: item.persona?.description ?? "",
-    status: item.status,
   }));
 }
 

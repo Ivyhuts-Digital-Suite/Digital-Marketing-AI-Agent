@@ -5,10 +5,20 @@ import { generateVideo } from "../services/contentStudio/videoGenerationService"
 import { pollAsyncVideoJob } from "../services/contentStudio/videoGenerationService";
 import { listAssetsForContentItem } from "../services/contentStudio/assetService";
 import { getJobById } from "../services/contentStudio/generationJobService";
+import {
+  approveContent,
+  archiveContent,
+  getContentHistory,
+  requestChanges,
+  scheduleContent,
+  submitForReview,
+} from "../services/contentStudio/contentLifecycleService";
+import { getLatestQualityCheck, runQualityCheck } from "../services/contentStudio/qualityCheckService";
 import { ContentPlanNotFoundError } from "../services/contentIntelligence/errors";
 import { OrganizationAccessError } from "../middleware/organization.middleware";
 import {
   ContentItemNotFoundError,
+  ContentQualityCheckNotFoundError,
   ContentStudioConfigurationError,
   ContentStudioDatabaseError,
   ContentStudioLlmRequestError,
@@ -16,11 +26,18 @@ import {
   FormatEngineMismatchError,
   GenerationJobNotFoundError,
   GenerationInProgressError,
+  GenerationNotCompleteError,
   GenerationProviderError,
+  InvalidLifecycleTransitionError,
   MediaProviderError,
   InvalidContentStudioInputError,
   InvalidContentStudioLlmResponseError,
   PlanNotReadyForGenerationError,
+  PublishingProviderError,
+  QualityCheckConfigurationError,
+  QualityGateNotPassedError,
+  RequestChangesRequiresCommentError,
+  SchedulingValidationError,
   UnsupportedFormatForGenerationError,
 } from "../services/contentStudio/errors";
 
@@ -58,7 +75,11 @@ function handleError(error: unknown, res: Response): void {
   if (
     error instanceof InvalidContentStudioInputError ||
     error instanceof FormatEngineMismatchError ||
-    error instanceof UnsupportedFormatForGenerationError
+    error instanceof UnsupportedFormatForGenerationError ||
+    error instanceof RequestChangesRequiresCommentError ||
+    error instanceof SchedulingValidationError ||
+    error instanceof GenerationNotCompleteError ||
+    error instanceof QualityGateNotPassedError
   ) {
     res.status(400).json({ success: false, message: error.message });
     return;
@@ -68,19 +89,32 @@ function handleError(error: unknown, res: Response): void {
     error instanceof ContentPlanNotFoundError ||
     error instanceof ContentItemNotFoundError ||
     error instanceof CreativeBriefNotFoundError ||
-    error instanceof GenerationJobNotFoundError
+    error instanceof GenerationJobNotFoundError ||
+    error instanceof ContentQualityCheckNotFoundError
   ) {
     res.status(404).json({ success: false, message: error.message });
     return;
   }
 
-  if (error instanceof PlanNotReadyForGenerationError) {
+  if (error instanceof PlanNotReadyForGenerationError || error instanceof InvalidLifecycleTransitionError) {
     res.status(409).json({ success: false, message: error.message });
     return;
   }
 
   if (error instanceof GenerationInProgressError) {
     res.status(409).json({ success: false, code: "VIDEO_GENERATION_IN_PROGRESS", message: error.message });
+    return;
+  }
+
+  if (error instanceof QualityCheckConfigurationError) {
+    console.error("Content Quality Check Configuration Error:", error.message);
+    res.status(503).json({ success: false, message: "Content quality check is not available right now" });
+    return;
+  }
+
+  if (error instanceof PublishingProviderError) {
+    console.error("Publishing Provider Error:", error.message);
+    res.status(502).json({ success: false, message: "Publishing failed upstream, please try again" });
     return;
   }
 
@@ -220,6 +254,124 @@ export const getGenerationJob = async (req: Request, res: Response): Promise<voi
     // Gemini directly.
     const updatedJob = await pollAsyncVideoJob(job);
     res.status(200).json({ success: true, message: "Generation job retrieved successfully", data: updatedJob });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Phase 9: lifecycle/review/scheduling endpoints. Every handler below
+ * resolves the ContentItem and verifies organization access entirely
+ * inside the service layer (resolveItemById / contentLifecycleService),
+ * and every status mutation goes through contentLifecycleService - no
+ * handler here ever assigns a status field directly.
+ */
+
+/** POST /api/content-studio/items/:contentItemId/submit-review */
+export const submitForReviewHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const item = await submitForReview(req.user!.id, contentItemId, { type: "USER", id: req.user!.id });
+    res.status(200).json({ success: true, message: "Submitted for review", data: item });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** POST /api/content-studio/items/:contentItemId/approve  (body: { comment? }) */
+export const approveContentHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const comment = typeof req.body?.comment === "string" ? req.body.comment : undefined;
+    const item = await approveContent(req.user!.id, contentItemId, req.user!.id, comment);
+    res.status(200).json({ success: true, message: "Content approved", data: item });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** POST /api/content-studio/items/:contentItemId/request-changes  (body: { comment: string } - required) */
+export const requestChangesHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const comment = typeof req.body?.comment === "string" ? req.body.comment : undefined;
+    const item = await requestChanges(req.user!.id, contentItemId, req.user!.id, comment);
+    res.status(200).json({ success: true, message: "Changes requested", data: item });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** POST /api/content-studio/items/:contentItemId/archive  (body: { comment? }) */
+export const archiveContentHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const comment = typeof req.body?.comment === "string" ? req.body.comment : undefined;
+    const item = await archiveContent(req.user!.id, contentItemId, req.user!.id, comment);
+    res.status(200).json({ success: true, message: "Content archived", data: item });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** GET /api/content-studio/items/:contentItemId/history */
+export const getContentHistoryHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const history = await getContentHistory(req.user!.id, contentItemId);
+    res.status(200).json({ success: true, message: "History retrieved successfully", data: history });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** POST /api/content-studio/items/:contentItemId/quality-check */
+export const runQualityCheckHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const check = await runQualityCheck(req.user!.id, contentItemId);
+    res.status(201).json({ success: true, message: "Quality check completed", data: check });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * GET /api/content-studio/items/:contentItemId/quality-check
+ *
+ * Mirrors GET /briefs/:contentItemId's "not-yet-run is not an error" shape
+ * would be nice, but a quality report the caller didn't know existed yet is
+ * genuinely a 404 here (unlike a brief, there's no "ensure" auto-creation
+ * path for a quality check - it's an explicit, billable AI action).
+ */
+export const getQualityCheckHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const check = await getLatestQualityCheck(req.user!.id, contentItemId);
+    res.status(200).json({ success: true, message: "Quality check retrieved successfully", data: check });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/** POST /api/content-studio/items/:contentItemId/schedule  (body: { scheduledAt: ISO string, scheduledTimezone: string }) */
+export const scheduleContentHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contentItemId } = req.params;
+    const { scheduledAt, scheduledTimezone } = req.body ?? {};
+
+    if (typeof scheduledAt !== "string" || typeof scheduledTimezone !== "string") {
+      res.status(400).json({ success: false, message: "scheduledAt and scheduledTimezone are required" });
+      return;
+    }
+
+    const item = await scheduleContent(
+      req.user!.id,
+      contentItemId,
+      { scheduledAt: new Date(scheduledAt), scheduledTimezone },
+      req.user!.id
+    );
+    res.status(200).json({ success: true, message: "Content scheduled", data: item });
   } catch (error) {
     handleError(error, res);
   }

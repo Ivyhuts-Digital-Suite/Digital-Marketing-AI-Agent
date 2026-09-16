@@ -1,12 +1,18 @@
 import { apiRequest } from "./client";
 import {
+  ApproveContentInput,
+  ContentLifecycleActionResponse,
   ContentStudioRequest,
   CreateCreativeBriefResponse,
   GenerateGraphicResponse,
   GenerateVideoResponse,
   GetContentAssetsResponse,
+  GetContentHistoryResponse,
   GetCreativeBriefResponse,
   GetGenerationJobResponse,
+  QualityCheckResponse,
+  RequestChangesInput,
+  ScheduleContentInput,
 } from "./types";
 
 export function generateCreativeBrief(input: ContentStudioRequest): Promise<CreateCreativeBriefResponse> {
@@ -41,4 +47,49 @@ export function getContentAssets(contentItemId: string): Promise<GetContentAsset
 
 export function getGenerationJob(jobId: string): Promise<GetGenerationJobResponse> {
   return apiRequest<GetGenerationJobResponse>(`/api/content-studio/jobs/${jobId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9: lifecycle / review / scheduling
+// ---------------------------------------------------------------------------
+
+export function submitForReview(contentItemId: string): Promise<ContentLifecycleActionResponse> {
+  return apiRequest<ContentLifecycleActionResponse>(`/api/content-studio/items/${contentItemId}/submit-review`, { method: "POST" });
+}
+
+export function approveContent(contentItemId: string, input: ApproveContentInput = {}): Promise<ContentLifecycleActionResponse> {
+  return apiRequest<ContentLifecycleActionResponse>(`/api/content-studio/items/${contentItemId}/approve`, { method: "POST", body: input });
+}
+
+export function requestChanges(contentItemId: string, input: RequestChangesInput): Promise<ContentLifecycleActionResponse> {
+  return apiRequest<ContentLifecycleActionResponse>(`/api/content-studio/items/${contentItemId}/request-changes`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function archiveContent(contentItemId: string, comment?: string): Promise<ContentLifecycleActionResponse> {
+  return apiRequest<ContentLifecycleActionResponse>(`/api/content-studio/items/${contentItemId}/archive`, {
+    method: "POST",
+    body: { comment },
+  });
+}
+
+export function scheduleContent(contentItemId: string, input: ScheduleContentInput): Promise<ContentLifecycleActionResponse> {
+  return apiRequest<ContentLifecycleActionResponse>(`/api/content-studio/items/${contentItemId}/schedule`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function getContentHistory(contentItemId: string): Promise<GetContentHistoryResponse> {
+  return apiRequest<GetContentHistoryResponse>(`/api/content-studio/items/${contentItemId}/history`);
+}
+
+export function runQualityCheck(contentItemId: string): Promise<QualityCheckResponse> {
+  return apiRequest<QualityCheckResponse>(`/api/content-studio/items/${contentItemId}/quality-check`, { method: "POST" });
+}
+
+export function getQualityCheck(contentItemId: string): Promise<QualityCheckResponse> {
+  return apiRequest<QualityCheckResponse>(`/api/content-studio/items/${contentItemId}/quality-check`);
 }

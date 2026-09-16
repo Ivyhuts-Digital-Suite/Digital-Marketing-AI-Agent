@@ -1,17 +1,19 @@
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/Button";
 
+/**
+ * Phase 9: the "Approve (Coming soon)" stub that used to live here has been
+ * replaced by the real approval workflow in ReviewActionsPanel.tsx, at the
+ * content-item level (not per-asset) - approving a single generated asset
+ * in isolation isn't meaningful when review/approval now applies to the
+ * whole content package (brief + assets together).
+ */
 export function AssetActionsBar({ onRegenerate, isRegenerating }: { onRegenerate: () => void; isRegenerating: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" onClick={onRegenerate} isLoading={isRegenerating}>
         <RefreshCw className="size-3.5" aria-hidden />
         Regenerate Video
-      </Button>
-      <Button variant="outline" size="sm" disabled title="Approval workflow is not available yet">
-        <CheckCircle2 className="size-3.5" aria-hidden />
-        Approve
-        <span className="ml-1 text-xs text-foreground-muted">(Coming soon)</span>
       </Button>
     </div>
   );

@@ -122,7 +122,6 @@ export async function generateContentPlan(input: GenerateContentPlanInput): Prom
       channel: brief.channel,
       format: brief.format,
       personaDescription: brief.audience.description,
-      status: "draft",
     });
 
     briefsToPersist.push({ brief, scheduledDate: scheduledDates[i] });
@@ -163,7 +162,9 @@ export async function generateContentPlan(input: GenerateContentPlanInput): Prom
         rationale: brief.rationale,
         evidence: brief.evidence ?? [],
         scheduledDate,
-        status: "draft",
+        // generationStatus/approvalStatus/publishingStatus/platform all take
+        // their Mongoose schema defaults ("planned"/"draft"/"unscheduled"/
+        // "instagram") - see models/ContentItem.ts.
       }))
     );
 

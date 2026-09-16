@@ -22,12 +22,12 @@ function videoTimeoutMs(): number {
 }
 
 async function markItemGenerating(item: IContentItem): Promise<void> {
-  item.status = "generating";
+  item.generationStatus = "generating";
   await item.save();
 }
 
 async function markItemOutcome(item: IContentItem, succeeded: boolean): Promise<void> {
-  item.status = succeeded ? "generated" : "failed";
+  item.generationStatus = succeeded ? "generated" : "failed";
   await item.save();
 }
 
@@ -50,12 +50,17 @@ async function persistVideoAsset(
   }
   const validation = validateVideoAsset(brief, scenes, result);
 
+  // Phase 9 - Step 13: same versioning link as graphicGenerationService.ts.
+  const previousAsset = await CreativeAsset.findOne({ contentItemId: item._id, type: "video" }).sort({ createdAt: -1 });
+
   const asset = await CreativeAsset.create({
     organizationId: plan.organizationId,
     contentPlanId: plan._id,
     contentItemId: item._id,
     creativeBriefId: brief._id,
     generationJobId: job._id,
+    previousAssetId: previousAsset?._id,
+    regenerationReason: previousAsset ? item.reviewComment : undefined,
     type: "video",
     subtype: "instagram_reel",
     format: item.format,

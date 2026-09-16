@@ -36,17 +36,14 @@ export type ContentPlanDuration = "1_week" | "2_weeks" | "1_month" | "3_months" 
 
 export type ContentPlanStatus = "draft" | "active" | "finalized" | "in_progress" | "completed" | "archived";
 
-export type ContentItemStatus =
-  | "draft"
-  | "scheduled"
-  | "published"
-  | "archived"
-  | "planned"
-  | "brief_ready"
-  | "generating"
-  | "generated"
-  | "approved"
-  | "failed";
+/**
+ * Phase 9: three independent lifecycle axes on ContentItem, replacing the
+ * old single `status` field (backend/src/services/contentIntelligence/content.types.ts).
+ */
+export type ContentGenerationStatus = "planned" | "brief_ready" | "generating" | "generated" | "failed";
+export type ContentApprovalStatus = "draft" | "review" | "changes_requested" | "approved";
+export type ContentPublishingStatus = "unscheduled" | "scheduled" | "published" | "failed" | "archived";
+export type ContentPlatform = "instagram";
 
 export interface ContentItemPersona {
   personaId?: string;
@@ -100,10 +97,124 @@ export interface ContentItem {
   cta: string;
   rationale: string;
   evidence: ContentItemEvidence[];
+  /** The Content Intelligence-planned calendar date - distinct from `scheduledAt`, the actual publish datetime set later via the Schedule action. */
   scheduledDate: string;
-  status: ContentItemStatus;
+
+  generationStatus: ContentGenerationStatus;
+  approvalStatus: ContentApprovalStatus;
+  publishingStatus: ContentPublishingStatus;
+  platform: ContentPlatform;
+
+  scheduledAt?: string;
+  scheduledTimezone?: string;
+  publishedAt?: string;
+  externalPostId?: string;
+  publishingProvider?: string;
+
+  reviewerId?: string;
+  reviewedAt?: string;
+  reviewComment?: string;
+
   createdAt: string;
   updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9: Content Lifecycle (backend/src/models/ContentQualityCheck.ts, ContentLifecycleHistory.ts)
+// ---------------------------------------------------------------------------
+
+export type ContentQualityCheckStatus = "PASS" | "FAIL";
+
+export interface QualityCheckCategory {
+  passed: boolean;
+  score: number;
+  notes: string[];
+}
+
+export interface FlaggedClaim {
+  claim: string;
+  type: "forbidden" | "unsupported";
+  reason: string;
+}
+
+export interface ContentQualityCheck {
+  _id: string;
+  organizationId: string;
+  contentPlanId: string;
+  contentItemId: string;
+  creativeBriefId: string;
+  assetIds: string[];
+  score: number;
+  status: ContentQualityCheckStatus;
+  checks: {
+    strategyAlignment: QualityCheckCategory;
+    messaging: QualityCheckCategory;
+    brandSafety: QualityCheckCategory;
+    instagramFit: QualityCheckCategory;
+    graphics?: QualityCheckCategory;
+    video?: QualityCheckCategory;
+  };
+  flaggedClaims: FlaggedClaim[];
+  issues: string[];
+  warnings: string[];
+  recommendations: string[];
+  checkedAt: string;
+  aiModel: string;
+  aiModelVersion?: string;
+  usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ContentLifecycleStatusField = "generationStatus" | "approvalStatus" | "publishingStatus";
+export type ContentLifecycleActorType = "AI" | "USER" | "SYSTEM";
+
+export interface ContentLifecycleHistoryEntry {
+  _id: string;
+  organizationId: string;
+  contentItemId: string;
+  statusField: ContentLifecycleStatusField;
+  fromStatus: string;
+  toStatus: string;
+  actorType: ContentLifecycleActorType;
+  actorId?: string;
+  actorLabel?: string;
+  comment?: string;
+  timestamp: string;
+}
+
+/** POST/GET .../submit-review, /approve, /request-changes, /archive, /schedule - all return the updated item in this shape. */
+export interface ContentLifecycleActionResponse {
+  success: true;
+  message: string;
+  data: ContentItem;
+}
+
+/** GET .../history */
+export interface GetContentHistoryResponse {
+  success: true;
+  message: string;
+  data: ContentLifecycleHistoryEntry[];
+}
+
+/** POST/GET .../quality-check */
+export interface QualityCheckResponse {
+  success: true;
+  message: string;
+  data: ContentQualityCheck;
+}
+
+export interface RequestChangesInput {
+  comment: string;
+}
+
+export interface ApproveContentInput {
+  comment?: string;
+}
+
+export interface ScheduleContentInput {
+  scheduledAt: string;
+  scheduledTimezone: string;
 }
 
 // ---------------------------------------------------------------------------

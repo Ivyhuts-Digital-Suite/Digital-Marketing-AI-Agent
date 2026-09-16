@@ -1,9 +1,12 @@
 import {
+  ContentApprovalStatus,
   ContentFormat,
+  ContentGenerationStatus,
   ContentGoal,
-  ContentItemStatus,
+  ContentItem,
   ContentPlanDuration,
   ContentPlanStatus,
+  ContentPublishingStatus,
   FunnelStage,
 } from "../api/types";
 
@@ -54,17 +57,27 @@ const PLAN_STATUS_LABELS: Record<ContentPlanStatus, string> = {
   archived: "Archived",
 };
 
-const ITEM_STATUS_LABELS: Record<ContentItemStatus, string> = {
-  draft: "Planned",
-  scheduled: "Scheduled",
-  published: "Published",
-  archived: "Archived",
+const GENERATION_STATUS_LABELS: Record<ContentGenerationStatus, string> = {
   planned: "Planned",
   brief_ready: "Brief Ready",
   generating: "Generating",
   generated: "Generated",
+  failed: "Generation Failed",
+};
+
+const APPROVAL_STATUS_LABELS: Record<ContentApprovalStatus, string> = {
+  draft: "Draft",
+  review: "Review",
+  changes_requested: "Changes Requested",
   approved: "Approved",
-  failed: "Failed",
+};
+
+const PUBLISHING_STATUS_LABELS: Record<ContentPublishingStatus, string> = {
+  unscheduled: "Unscheduled",
+  scheduled: "Scheduled",
+  published: "Published",
+  failed: "Publishing Failed",
+  archived: "Archived",
 };
 
 export function goalLabel(goal: ContentGoal): string {
@@ -92,8 +105,43 @@ export function planStatusLabel(status: ContentPlanStatus): string {
   return PLAN_STATUS_LABELS[status] ?? status;
 }
 
-export function itemStatusLabel(status: ContentItemStatus): string {
-  return ITEM_STATUS_LABELS[status] ?? status;
+export function generationStatusLabel(status: ContentGenerationStatus): string {
+  return GENERATION_STATUS_LABELS[status] ?? status;
+}
+
+export function approvalStatusLabel(status: ContentApprovalStatus): string {
+  return APPROVAL_STATUS_LABELS[status] ?? status;
+}
+
+export function publishingStatusLabel(status: ContentPublishingStatus): string {
+  return PUBLISHING_STATUS_LABELS[status] ?? status;
+}
+
+export type ContentDisplayStatusKind = "generation" | "approval" | "publishing";
+
+export interface ContentDisplayStatus {
+  kind: ContentDisplayStatusKind;
+  value: string;
+  label: string;
+}
+
+/**
+ * The single status a calendar card / header badge should show, spanning
+ * all three lifecycle axes (see content.types.ts on the backend for why
+ * they're separate). Generation takes priority until it completes -
+ * approval/publishing are meaningless before there's anything to review.
+ * Once generated, publishingStatus takes priority once it moves past
+ * "unscheduled" (scheduled/published/failed/archived); otherwise
+ * approvalStatus (draft/review/changes_requested/approved) is shown.
+ */
+export function computeDisplayStatus(item: ContentItem): ContentDisplayStatus {
+  if (item.generationStatus !== "generated") {
+    return { kind: "generation", value: item.generationStatus, label: generationStatusLabel(item.generationStatus) };
+  }
+  if (item.publishingStatus !== "unscheduled") {
+    return { kind: "publishing", value: item.publishingStatus, label: publishingStatusLabel(item.publishingStatus) };
+  }
+  return { kind: "approval", value: item.approvalStatus, label: approvalStatusLabel(item.approvalStatus) };
 }
 
 export function formatDate(value: string, options?: Intl.DateTimeFormatOptions): string {

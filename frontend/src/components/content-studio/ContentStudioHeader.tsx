@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ContentItem } from "@/lib/api/types";
 import { ContentFormatBadge } from "../calendar/ContentFormatBadge";
-import { ItemStatusBadge } from "../calendar/StatusBadges";
+import { ContentLifecycleStatusBadge } from "../calendar/StatusBadges";
 
 export function ContentStudioHeader({ item }: { item: ContentItem }) {
   return (
@@ -14,7 +14,7 @@ export function ContentStudioHeader({ item }: { item: ContentItem }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <ContentFormatBadge format={item.format} />
-        <ItemStatusBadge status={item.status} />
+        <ContentLifecycleStatusBadge item={item} />
       </div>
 
       <h1 className="text-2xl font-semibold text-foreground">{item.topic}</h1>

@@ -3,7 +3,10 @@ import {
   ContentChannel,
   ContentFormat,
   ContentGoal,
-  ContentItemStatus,
+  ContentApprovalStatus,
+  ContentGenerationStatus,
+  ContentPlatform,
+  ContentPublishingStatus,
   FunnelStage,
 } from "../services/contentIntelligence/content.types";
 
@@ -29,18 +32,15 @@ const CONTENT_FORMATS: ContentFormat[] = [
   "ad_copy",
   "ad_creative_brief",
 ];
-const CONTENT_ITEM_STATUSES: ContentItemStatus[] = [
-  "draft",
-  "scheduled",
-  "published",
-  "archived",
-  "planned",
-  "brief_ready",
-  "generating",
-  "generated",
-  "approved",
-  "failed",
-];
+
+/**
+ * Phase 9: three independent lifecycle axes - see content.types.ts for the
+ * full rationale. Replaces the single pre-Phase-9 `status` field.
+ */
+const CONTENT_GENERATION_STATUSES: ContentGenerationStatus[] = ["planned", "brief_ready", "generating", "generated", "failed"];
+const CONTENT_APPROVAL_STATUSES: ContentApprovalStatus[] = ["draft", "review", "changes_requested", "approved"];
+const CONTENT_PUBLISHING_STATUSES: ContentPublishingStatus[] = ["unscheduled", "scheduled", "published", "failed", "archived"];
+const CONTENT_PLATFORMS: ContentPlatform[] = ["instagram"];
 
 /**
  * personaId is a plain string (not an ObjectId ref) because content.types'
@@ -66,6 +66,11 @@ export interface IContentItemEvidence {
  * content within a ContentPlan. Mirrors the ContentItem contract from
  * content.types.ts exactly (persona/message/cta naming, not
  * audience/coreMessage/cta as on ContentBrief).
+ *
+ * Phase 9: added generationStatus/approvalStatus/publishingStatus (see
+ * content.types.ts), platform, scheduling fields, and reviewer fields.
+ * Only ContentLifecycleService may write approvalStatus/publishingStatus/
+ * reviewer* - see services/contentStudio/contentLifecycleService.ts.
  */
 export interface IContentItem extends Document {
   contentPlanId: Types.ObjectId;
@@ -85,7 +90,21 @@ export interface IContentItem extends Document {
   rationale: string;
   evidence: IContentItemEvidence[];
   scheduledDate: Date;
-  status: ContentItemStatus;
+
+  generationStatus: ContentGenerationStatus;
+  approvalStatus: ContentApprovalStatus;
+  publishingStatus: ContentPublishingStatus;
+  platform: ContentPlatform;
+
+  scheduledAt?: Date;
+  scheduledTimezone?: string;
+  publishedAt?: Date;
+  externalPostId?: string;
+  publishingProvider?: string;
+
+  reviewerId?: Types.ObjectId;
+  reviewedAt?: Date;
+  reviewComment?: string;
 }
 
 const contentItemPersonaSchema = new Schema<IContentItemPersona>(
@@ -134,13 +153,38 @@ const contentItemSchema = new Schema<IContentItem>(
 
     scheduledDate: { type: Date, required: true, index: true },
 
-    status: {
+    generationStatus: {
       type: String,
-      enum: CONTENT_ITEM_STATUSES,
+      enum: CONTENT_GENERATION_STATUSES,
+      default: "planned",
+      required: true,
+      index: true,
+    },
+    approvalStatus: {
+      type: String,
+      enum: CONTENT_APPROVAL_STATUSES,
       default: "draft",
       required: true,
       index: true,
     },
+    publishingStatus: {
+      type: String,
+      enum: CONTENT_PUBLISHING_STATUSES,
+      default: "unscheduled",
+      required: true,
+      index: true,
+    },
+    platform: { type: String, enum: CONTENT_PLATFORMS, default: "instagram", required: true },
+
+    scheduledAt: { type: Date },
+    scheduledTimezone: { type: String },
+    publishedAt: { type: Date },
+    externalPostId: { type: String },
+    publishingProvider: { type: String },
+
+    reviewerId: { type: Schema.Types.ObjectId, ref: "User" },
+    reviewedAt: { type: Date },
+    reviewComment: { type: String },
   },
   {
     timestamps: true,
@@ -148,6 +192,8 @@ const contentItemSchema = new Schema<IContentItem>(
 );
 
 contentItemSchema.index({ organizationId: 1, contentPlanId: 1, scheduledDate: 1 });
+contentItemSchema.index({ organizationId: 1, approvalStatus: 1 });
+contentItemSchema.index({ organizationId: 1, publishingStatus: 1 });
 
 const ContentItem = mongoose.model<IContentItem>("ContentItem", contentItemSchema);
 

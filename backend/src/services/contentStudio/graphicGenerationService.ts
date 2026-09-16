@@ -117,12 +117,12 @@ function toImageRequest(brief: ICreativeBrief, spec: DesignSpecification): Image
 }
 
 async function markItemGenerating(item: IContentItem): Promise<void> {
-  item.status = "generating";
+  item.generationStatus = "generating";
   await item.save();
 }
 
 async function markItemOutcome(item: IContentItem, succeeded: boolean): Promise<void> {
-  item.status = succeeded ? "generated" : "failed";
+  item.generationStatus = succeeded ? "generated" : "failed";
   await item.save();
 }
 
@@ -166,12 +166,22 @@ export async function generateGraphic(
       const result = await provider.generate(toImageRequest(brief, spec));
       const validation = validateGraphicAsset(brief, result);
 
+      // Phase 9 - Step 13: link to whatever this generation call is
+      // replacing (never overwritten/deleted) so the history is
+      // traceable. Only set on a genuine regeneration - undefined on a
+      // first-time generation for this item+subtype.
+      const previousAsset = await CreativeAsset.findOne({ contentItemId: item._id, type: "graphic", subtype: spec.subtype }).sort({
+        createdAt: -1,
+      });
+
       const asset = await CreativeAsset.create({
         organizationId: plan.organizationId,
         contentPlanId: plan._id,
         contentItemId: item._id,
         creativeBriefId: brief._id,
         generationJobId: job._id,
+        previousAssetId: previousAsset?._id,
+        regenerationReason: previousAsset ? item.reviewComment : undefined,
         type: "graphic",
         subtype: spec.subtype,
         format: item.format,

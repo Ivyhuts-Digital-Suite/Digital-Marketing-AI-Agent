@@ -3,7 +3,6 @@ import {
   ContentChannel,
   ContentFormat,
   ContentGoal,
-  ContentItemStatus,
   ContentPlanDuration,
   FunnelStage,
   TopicScore,
@@ -69,7 +68,6 @@ export interface ExistingContentSummaryItem {
   channel: ContentChannel;
   format: ContentFormat;
   personaDescription: string;
-  status: ContentItemStatus;
 }
 
 /**

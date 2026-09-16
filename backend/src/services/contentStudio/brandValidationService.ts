@@ -13,7 +13,8 @@ import { MotionGraphicScene, BrandValidationResult } from "./contentStudio.types
  * human/future action" rule.
  */
 
-function containsForbiddenClaim(text: string, forbiddenClaims: string[]): string[] {
+/** Exported for reuse by qualityCheckService.ts (Phase 9) - the deterministic forbidden-claim safety net that backstops the LLM's own brand-safety judgment, so a literal forbidden phrase can never slip through undetected. */
+export function containsForbiddenClaim(text: string, forbiddenClaims: string[]): string[] {
   const lower = text.toLowerCase();
   return forbiddenClaims.filter((claim) => claim.trim().length > 0 && lower.includes(claim.toLowerCase()));
 }

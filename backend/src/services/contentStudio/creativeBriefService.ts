@@ -8,6 +8,7 @@ import { assertOrganizationMembership } from "../../middleware/organization.midd
 import { requestCreativeDirection } from "./creativeBriefLlm";
 import { ContentItemNotFoundError, ContentStudioDatabaseError, InvalidContentStudioInputError } from "./errors";
 import { resolvePlanAndItem } from "./contentResolver.service";
+import { resetToDraftForRegeneration } from "./contentLifecycleService";
 
 /**
  * Platform aspect ratios are a backend/technical decision tied to what
@@ -56,6 +57,12 @@ function buildSourceReferences(item: IContentItem): ISourceReference[] {
  * generationRequirements.
  */
 export async function generateCreativeBrief(plan: IContentPlan, item: IContentItem): Promise<ICreativeBrief> {
+  // Explicitly requesting a new brief is the "explicitly requested"
+  // regeneration trigger the spec requires (Step 15: never regenerate
+  // automatically) - it also authorizes moving CHANGES_REQUESTED content
+  // back to DRAFT, per the one sanctioned transition out of that state.
+  await resetToDraftForRegeneration(item);
+
   const context = await gatherContentIntelligenceContext(plan.organizationId.toString());
   const direction = await requestCreativeDirection(item, context.companyBrain);
 
@@ -104,8 +111,8 @@ export async function generateCreativeBrief(plan: IContentPlan, item: IContentIt
       { upsert: true, new: true }
     );
 
-    if (item.status === "draft" || item.status === "scheduled" || item.status === "planned") {
-      item.status = "brief_ready";
+    if (item.generationStatus === "planned") {
+      item.generationStatus = "brief_ready";
       await item.save();
     }
 

@@ -6,18 +6,28 @@ import { useEffect, useMemo, useState } from "react";
 import { useOrganization } from "@/lib/organization/OrganizationContext";
 import { useContentPlan } from "@/lib/hooks/useContentPlan";
 import { useContentAssets } from "@/lib/hooks/useContentAssets";
+import { useContentHistory } from "@/lib/hooks/useContentHistory";
 import { useCreativeBrief } from "@/lib/hooks/useCreativeBrief";
-import { useGenerateCreativeBrief, useGenerateGraphic, useGenerateVideo } from "@/lib/hooks/useContentStudioMutations";
+import { useQualityCheck } from "@/lib/hooks/useQualityCheck";
+import {
+  useGenerateCreativeBrief,
+  useGenerateGraphic,
+  useGenerateVideo,
+  useRunQualityCheck,
+} from "@/lib/hooks/useContentStudioMutations";
 import { useGenerationJob } from "@/lib/hooks/useGenerationJob";
 import { ApiError, isApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ContentHistoryPanel } from "@/components/content-studio/ContentHistoryPanel";
 import { ContentMessagePanel } from "@/components/content-studio/ContentMessagePanel";
 import { ContentStrategyPanel } from "@/components/content-studio/ContentStrategyPanel";
 import { ContentStudioHeader } from "@/components/content-studio/ContentStudioHeader";
 import { CreativeBriefPanel } from "@/components/content-studio/CreativeBriefPanel";
 import { GraphicGenerationPanel } from "@/components/content-studio/GraphicGenerationPanel";
+import { QualityReportPanel } from "@/components/content-studio/QualityReportPanel";
+import { ReviewActionsPanel } from "@/components/content-studio/ReviewActionsPanel";
 import { VideoGenerationPanel } from "@/components/content-studio/VideoGenerationPanel";
 
 const PLAN_READY_STATUSES = new Set(["finalized", "in_progress"]);
@@ -33,6 +43,8 @@ export default function ContentStudioPage() {
   const { refetch: refetchPlan } = planQuery;
   const { data: contentAssets, refetch: refetchContentAssets } = useContentAssets(contentItemId);
   const briefQuery = useCreativeBrief(contentItemId);
+  const qualityCheckQuery = useQualityCheck(contentItemId);
+  const historyQuery = useContentHistory(contentItemId);
 
   const item = useMemo(
     () => planQuery.data?.items.find((candidate) => candidate._id === contentItemId),
@@ -45,6 +57,7 @@ export default function ContentStudioPage() {
   const videoMutation = useGenerateVideo(organizationId, briefInput);
   const [videoJobId, setVideoJobId] = useState<string | null>(null);
   const videoJobQuery = useGenerationJob(videoJobId);
+  const runQualityCheckMutation = useRunQualityCheck(organizationId, planId ?? "", contentItemId);
 
   useEffect(() => {
     if (videoJobQuery.data?.status === "completed") {
@@ -156,6 +169,19 @@ export default function ContentStudioPage() {
           }
         />
       )}
+
+      <QualityReportPanel
+        check={qualityCheckQuery.data}
+        isLoading={qualityCheckQuery.isLoading}
+        canRunCheck={item.generationStatus === "generated"}
+        isRunning={runQualityCheckMutation.isPending}
+        error={runQualityCheckMutation.error && isApiError(runQualityCheckMutation.error) ? runQualityCheckMutation.error : null}
+        onRunCheck={() => runQualityCheckMutation.mutate()}
+      />
+
+      <ReviewActionsPanel organizationId={organizationId} item={item} qualityGatePassed={qualityCheckQuery.data?.status === "PASS"} />
+
+      <ContentHistoryPanel entries={historyQuery.data} isLoading={historyQuery.isLoading} />
     </div>
   );
 }

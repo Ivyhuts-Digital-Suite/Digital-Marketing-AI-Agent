@@ -1,6 +1,6 @@
-import { CheckCircle2, Circle, Clock, FileEdit, Loader2, XCircle } from "lucide-react";
-import { ContentItemStatus, ContentPlanStatus } from "@/lib/api/types";
-import { itemStatusLabel, planStatusLabel } from "@/lib/utils/labels";
+import { AlertTriangle, Archive, CheckCircle2, Circle, Clock, FileEdit, Loader2, MessageSquareWarning, Send, XCircle } from "lucide-react";
+import { ContentItem, ContentPlanStatus } from "@/lib/api/types";
+import { computeDisplayStatus, planStatusLabel } from "@/lib/utils/labels";
 import { Badge, BadgeTone } from "../ui/Badge";
 
 const PLAN_STATUS_TONE: Record<ContentPlanStatus, BadgeTone> = {
@@ -16,34 +16,56 @@ export function PlanStatusBadge({ status }: { status: ContentPlanStatus }) {
   return <Badge tone={PLAN_STATUS_TONE[status]}>{planStatusLabel(status)}</Badge>;
 }
 
-const ITEM_STATUS_TONE: Record<ContentItemStatus, BadgeTone> = {
-  draft: "neutral",
-  scheduled: "neutral",
-  published: "success",
-  archived: "neutral",
+/** Tone/icon per DISPLAY STATUS VALUE, spanning all three lifecycle axes - see computeDisplayStatus. Professional icon system (lucide-react), no emoji, per the Phase 9 spec. */
+const DISPLAY_STATUS_TONE: Record<string, BadgeTone> = {
+  // generationStatus
   planned: "neutral",
   brief_ready: "info",
   generating: "warning",
-  generated: "success",
-  approved: "success",
   failed: "danger",
+  // approvalStatus
+  draft: "neutral",
+  review: "info",
+  changes_requested: "warning",
+  approved: "success",
+  // publishingStatus
+  scheduled: "info",
+  published: "success",
+  archived: "neutral",
 };
 
-const ITEM_STATUS_ICON: Partial<Record<ContentItemStatus, typeof Circle>> = {
+const DISPLAY_STATUS_ICON: Record<string, typeof Circle> = {
   generating: Loader2,
-  generated: CheckCircle2,
-  approved: CheckCircle2,
   failed: XCircle,
   brief_ready: FileEdit,
-  scheduled: Clock,
+  review: Clock,
+  changes_requested: MessageSquareWarning,
+  approved: CheckCircle2,
+  scheduled: Send,
+  published: CheckCircle2,
+  archived: Archive,
 };
 
-export function ItemStatusBadge({ status }: { status: ContentItemStatus }) {
-  const Icon = ITEM_STATUS_ICON[status];
+/**
+ * The one status badge every surface (calendar card, Content Studio
+ * header) should use - computes which of the three lifecycle axes is
+ * currently the meaningful one for this item (see labels.ts::computeDisplayStatus)
+ * rather than requiring callers to pick an axis themselves.
+ */
+export function ContentLifecycleStatusBadge({ item }: { item: ContentItem }) {
+  const display = computeDisplayStatus(item);
+  const Icon = DISPLAY_STATUS_ICON[display.value];
+  const tone = DISPLAY_STATUS_TONE[display.value] ?? "neutral";
+
   return (
-    <Badge tone={ITEM_STATUS_TONE[status]}>
+    <Badge tone={tone}>
       {Icon && <Icon className={Icon === Loader2 ? "size-3 animate-spin" : "size-3"} aria-hidden />}
-      {itemStatusLabel(status)}
+      {display.label}
     </Badge>
   );
+}
+
+/** Publishing-failure and generation-failure both render with a distinct warning icon when shown standalone (e.g. filters) - exported for reuse outside the combined badge. */
+export function statusIconFor(value: string): typeof Circle | undefined {
+  return DISPLAY_STATUS_ICON[value] ?? (value === "failed" ? AlertTriangle : undefined);
 }
