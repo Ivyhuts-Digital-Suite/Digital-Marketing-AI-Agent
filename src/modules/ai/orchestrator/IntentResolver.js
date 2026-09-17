@@ -38,5 +38,9 @@ export function resolveIntent(requestMessage) {
     return { primary: "company_analysis", confidence: 0.7 };
   }
 
+  if (message.includes("publish") && message.includes("instagram")) {
+    return { primary: "publish_instagram_content", confidence: 0.7 };
+  }
+
   return { primary: "general_request", confidence: 0.3 };
 }

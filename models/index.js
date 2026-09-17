@@ -14,6 +14,9 @@ import MarketingStrategy from "./marketingStrategy.model.js";
 import ContentAsset from "./contentAsset.model.js";
 import Content from "./content.model.js";
 import ContentCalendar from "./contentCalendar.model.js";
+import CreativeBrief from "./creativeBrief.model.js";
+import CreativeAsset from "./creativeAsset.model.js";
+import GenerationJob from "./generationJob.model.js";
 import Campaign from "./campaign.model.js";
 import CampaignAsset from "./campaignAsset.model.js";
 import AnalyticsSnapshot from "./analyticsSnapshot.model.js";
@@ -30,6 +33,8 @@ import Approval from "./approval.model.js";
 import Integration from "./integration.model.js";
 import IntegrationAccount from "./integrationAccount.model.js";
 import IntegrationSync from "./integrationSync.model.js";
+import IntegrationExecution from "./integrationExecution.model.js";
+import IntegrationWebhookEvent from "./integrationWebhookEvent.model.js";
 import KnowledgeDocument from "./knowledgeDocument.model.js";
 import KnowledgeChunk from "./knowledgeChunk.model.js";
 import AuditLog from "./auditLog.model.js";
@@ -51,6 +56,9 @@ export {
   ContentAsset,
   Content,
   ContentCalendar,
+  CreativeBrief,
+  CreativeAsset,
+  GenerationJob,
   Campaign,
   CampaignAsset,
   AnalyticsSnapshot,
@@ -67,6 +75,8 @@ export {
   Integration,
   IntegrationAccount,
   IntegrationSync,
+  IntegrationExecution,
+  IntegrationWebhookEvent,
   KnowledgeDocument,
   KnowledgeChunk,
   AuditLog

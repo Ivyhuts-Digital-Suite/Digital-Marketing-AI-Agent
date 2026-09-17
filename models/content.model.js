@@ -108,13 +108,9 @@ const ContentSchema = new mongoose.Schema(
       }
     ],
 
-    creativeBrief: {
-      concept: String,
-      visualDirection: String,
-      targetEmotion: String,
-      composition: String,
-      aspectRatio: String,
-      style: String
+    creativeBriefId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CreativeBrief"
     },
 
     assetIds: [
