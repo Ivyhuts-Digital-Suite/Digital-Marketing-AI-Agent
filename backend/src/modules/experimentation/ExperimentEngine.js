@@ -1,5 +1,7 @@
 import Hypothesis from "../../models/hypothesis.model.js";
 import Experiment from "../../models/experiment.model.js";
+import ExperimentVariant from "../../models/experimentVariant.model.js";
+import ExperimentResult from "../../models/experimentResult.model.js";
 import { designExperiment } from "./services/ExperimentDesignService.js";
 import { calculateBaseline } from "./services/BaselineService.js";
 import {
@@ -243,6 +245,7 @@ export async function cancelExperiment({ experimentId, reason }) {
  * @param {number} params.variantConversions
  * @param {number} params.variantSampleSize
  * @param {number} [params.confidenceLevel]
+ * @param {string} [params.metricName="primary_metric"] - Name recorded against each ExperimentResult's metrics entry.
  * @returns {Promise<Object>} The evaluation outcome.
  */
 export async function evaluateExperiment({
@@ -251,7 +254,8 @@ export async function evaluateExperiment({
   controlSampleSize,
   variantConversions,
   variantSampleSize,
-  confidenceLevel
+  confidenceLevel,
+  metricName = "primary_metric"
 }) {
   const result = calculateSignificance({
     controlConversions,
@@ -267,6 +271,45 @@ export async function evaluateExperiment({
     await Experiment.findByIdAndUpdate(experimentId, { status: "invalid" });
     return { success: false, error: result.error };
   }
+
+  const experiment = await Experiment.findById(experimentId);
+  const variants = await ExperimentVariant.find({ experimentId });
+  const controlVariant = variants.find((v) => v.type === "control");
+  const variantVariant = variants.find((v) => v.type === "variant");
+
+  if (!experiment || !controlVariant || !variantVariant) {
+    return { success: false, error: "MISSING_EXPERIMENT_VARIANTS" };
+  }
+
+  const statisticalResult = {
+    confidence: result.confidenceLevel,
+    pValue: result.pValue,
+    significant: result.isSignificant
+  };
+
+  const controlResult = await ExperimentResult.create({
+    organizationId: experiment.organizationId,
+    experimentId,
+    variantId: controlVariant._id,
+    sampleSize: controlSampleSize,
+    effectSize: null,
+    confidenceInterval: null,
+    metrics: [{ metric: metricName, value: controlConversions / controlSampleSize }],
+    statisticalResult,
+    evaluatedAt: new Date()
+  });
+
+  const variantResult = await ExperimentResult.create({
+    organizationId: experiment.organizationId,
+    experimentId,
+    variantId: variantVariant._id,
+    sampleSize: variantSampleSize,
+    effectSize: result.effectSize,
+    confidenceInterval: result.confidenceInterval,
+    metrics: [{ metric: metricName, value: variantConversions / variantSampleSize }],
+    statisticalResult,
+    evaluatedAt: new Date()
+  });
 
   const resultState = determineResultState(result);
 
@@ -294,6 +337,7 @@ export async function evaluateExperiment({
     success: true,
     statisticalResult: result,
     resultState,
-    learning: learningResult.learning
+    learning: learningResult.learning,
+    resultIds: [controlResult._id, variantResult._id]
   };
 }
