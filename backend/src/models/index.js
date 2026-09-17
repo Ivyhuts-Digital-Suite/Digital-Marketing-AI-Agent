@@ -26,6 +26,7 @@ import AgentRun from "./agentRun.model.js";
 import AgentMemory from "./agentMemory.model.js";
 import AgentLearning from "./agentLearning.model.js";
 import Recommendation from "./recommendation.model.js";
+import Hypothesis from "./hypothesis.model.js";
 import Experiment from "./experiment.model.js";
 import ExperimentVariant from "./experimentVariant.model.js";
 import ExperimentResult from "./experimentResult.model.js";
@@ -66,6 +67,7 @@ export {
   AgentMemory,
   AgentLearning,
   Recommendation,
+  Hypothesis,
   Experiment,
   ExperimentVariant,
   ExperimentResult,

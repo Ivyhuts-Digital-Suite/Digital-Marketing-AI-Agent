@@ -26,6 +26,8 @@ const ExperimentVariantSchema = new mongoose.Schema(
 
     description: String,
 
+    configuration: mongoose.Schema.Types.Mixed,
+
     contentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Content"

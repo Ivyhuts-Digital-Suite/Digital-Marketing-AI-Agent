@@ -24,6 +24,13 @@ const ExperimentResultSchema = new mongoose.Schema(
 
     sampleSize: Number,
 
+    effectSize: Number,
+
+    confidenceInterval: {
+      lower: Number,
+      upper: Number
+    },
+
     metrics: [
       {
         metric: String,

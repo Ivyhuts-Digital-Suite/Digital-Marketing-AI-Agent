@@ -24,9 +24,11 @@ const ExperimentSchema = new mongoose.Schema(
       required: true
     },
 
-    hypothesis: {
-      type: String,
-      required: true
+    hypothesisId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hypothesis",
+      required: true,
+      index: true
     },
 
     objective: String,
@@ -48,20 +50,29 @@ const ExperimentSchema = new mongoose.Schema(
       ref: "ExperimentVariant"
     },
 
-    learningId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AgentLearning"
-    },
+    learningIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "AgentLearning"
+      }
+    ],
 
     status: {
       type: String,
       enum: [
         "draft",
+        "designed",
         "pending_approval",
         "approved",
+        "scheduled",
         "running",
+        "measuring",
+        "evaluating",
         "completed",
-        "cancelled"
+        "cancelled",
+        "failed",
+        "invalid",
+        "inconclusive"
       ],
       default: "draft",
       index: true
