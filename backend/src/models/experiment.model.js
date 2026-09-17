@@ -61,11 +61,18 @@ const ExperimentSchema = new mongoose.Schema(
       type: String,
       enum: [
         "draft",
+        "designed",
         "pending_approval",
         "approved",
+        "scheduled",
         "running",
+        "measuring",
+        "evaluating",
         "completed",
-        "cancelled"
+        "cancelled",
+        "failed",
+        "invalid",
+        "inconclusive"
       ],
       default: "draft",
       index: true

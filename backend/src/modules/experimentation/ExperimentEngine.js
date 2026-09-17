@@ -124,14 +124,115 @@ export async function createExperiment({
       metric: baselineResult.metric,
       value: baselineResult.value
     },
-    // Experiment.status has no "designed" value — "draft" matches the
-    // schema's own default and existing enum (draft/pending_approval/
-    // approved/running/completed/cancelled).
-    status: "draft"
+    status: "designed"
   });
 }
 
 /**
+ * Approves a designed (or previously pending) Experiment so it can be
+ * scheduled.
+ * @param {string} experimentId
+ * @returns {Promise<Object>} { success: true, experiment } or { success: false, error }.
+ */
+export async function approveExperiment(experimentId) {
+  const experiment = await Experiment.findById(experimentId);
+
+  if (!["designed", "pending_approval"].includes(experiment.status)) {
+    return {
+      success: false,
+      error: `Cannot approve experiment in status "${experiment.status}"`
+    };
+  }
+
+  experiment.status = "approved";
+  await experiment.save();
+
+  return { success: true, experiment };
+}
+
+/**
+ * Schedules an approved Experiment for a start/end window.
+ * @param {Object} params
+ * @param {string} params.experimentId
+ * @param {Date} params.startDate
+ * @param {Date} params.endDate
+ * @returns {Promise<Object>} { success: true, experiment } or { success: false, error }.
+ */
+export async function scheduleExperiment({ experimentId, startDate, endDate }) {
+  const experiment = await Experiment.findById(experimentId);
+
+  if (experiment.status !== "approved") {
+    return {
+      success: false,
+      error: `Cannot schedule experiment in status "${experiment.status}"`
+    };
+  }
+
+  experiment.status = "scheduled";
+  experiment.startDate = startDate;
+  experiment.endDate = endDate;
+  await experiment.save();
+
+  return { success: true, experiment };
+}
+
+/**
+ * Starts a scheduled (or directly approved) Experiment.
+ * @param {string} experimentId
+ * @returns {Promise<Object>} { success: true, experiment } or { success: false, error }.
+ */
+export async function startExperiment(experimentId) {
+  const experiment = await Experiment.findById(experimentId);
+
+  if (!["scheduled", "approved"].includes(experiment.status)) {
+    return {
+      success: false,
+      error: `Cannot start experiment in status "${experiment.status}"`
+    };
+  }
+
+  experiment.status = "running";
+  await experiment.save();
+
+  return { success: true, experiment };
+}
+
+const TERMINAL_STATUSES = ["completed", "cancelled", "inconclusive", "invalid", "failed"];
+
+/**
+ * Cancels an Experiment that hasn't already reached a terminal status.
+ *
+ * Experiment has no notes/reason field, so `reason` isn't persisted
+ * anywhere on the document today — only status is updated.
+ * @param {Object} params
+ * @param {string} params.experimentId
+ * @param {string} [params.reason] - Accepted but not currently stored; see above.
+ * @returns {Promise<Object>} { success: true, experiment } or { success: false, error }.
+ */
+export async function cancelExperiment({ experimentId, reason }) {
+  const experiment = await Experiment.findById(experimentId);
+
+  if (TERMINAL_STATUSES.includes(experiment.status)) {
+    return {
+      success: false,
+      error: `Cannot cancel experiment already in terminal status "${experiment.status}"`
+    };
+  }
+
+  experiment.status = "cancelled";
+  await experiment.save();
+
+  return { success: true, experiment };
+}
+
+/**
+ * A "measuring"/"evaluating" intermediate transition isn't modeled as a
+ * separate step here, since this codebase doesn't yet have a live
+ * analytics feed that would make that transition meaningful.
+ * evaluateExperiment() implicitly assumes the experiment was already
+ * "running" and moves straight to a terminal state
+ * (completed/inconclusive/invalid) once given results to evaluate.
+ *
  * Evaluates a completed experiment's measurements: runs the statistical
  * test, determines the result state, records a learning from it, and
  * marks the Experiment completed.
@@ -163,6 +264,7 @@ export async function evaluateExperiment({
   if (!result.valid) {
     // Maps to the roadmap's INVALID result state — invalid input never
     // proceeds to a learning.
+    await Experiment.findByIdAndUpdate(experimentId, { status: "invalid" });
     return { success: false, error: result.error };
   }
 
@@ -174,9 +276,19 @@ export async function evaluateExperiment({
     resultState
   });
 
-  // NO_CLEAR_DIFFERENCE is still a completed experiment, per the
-  // roadmap — status update happens regardless of resultState.
-  await Experiment.findByIdAndUpdate(experimentId, { status: "completed" });
+  // Experiment status reflects the result state, not a single blanket
+  // "completed" — NO_CLEAR_DIFFERENCE/INCONCLUSIVE are still valid,
+  // informative outcomes, just not ones with a supported arm.
+  const statusByResultState = {
+    NO_CLEAR_DIFFERENCE: "inconclusive",
+    INCONCLUSIVE: "inconclusive",
+    VARIANT_SUPPORTED: "completed",
+    CONTROL_SUPPORTED: "completed"
+  };
+
+  await Experiment.findByIdAndUpdate(experimentId, {
+    status: statusByResultState[resultState]
+  });
 
   return {
     success: true,
