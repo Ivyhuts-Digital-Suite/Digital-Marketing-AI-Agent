@@ -69,7 +69,6 @@ export class ExecutionEngine {
 
     let attemptNumber = 0;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       let error;
 
