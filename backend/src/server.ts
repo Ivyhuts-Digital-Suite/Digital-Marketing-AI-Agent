@@ -33,6 +33,15 @@ app.use("/api/company-intelligence", companyIntelligenceRoutes);
 app.use("/api/content-intelligence", contentIntelligenceRoutes);
 app.use("/api/strategy", strategyRoutes);
 
+// @ts-ignore - experimentation.routes.js is plain JS/ESM; allowJs is not enabled project-wide (out of scope to change here)
+import("./routes/experimentation.routes.js")
+  .then((mod) => {
+    app.use("/api/experimentation", mod.default);
+  })
+  .catch((error) => {
+    console.error("Failed to load experimentation routes:", error);
+  });
+
 // Test route
 app.get("/", (req, res) => {
   res.json({
