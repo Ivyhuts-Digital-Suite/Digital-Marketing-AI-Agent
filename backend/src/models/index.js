@@ -34,6 +34,8 @@ import Approval from "./approval.model.js";
 import Integration from "./integration.model.js";
 import IntegrationAccount from "./integrationAccount.model.js";
 import IntegrationSync from "./integrationSync.model.js";
+import IntegrationExecution from "./integrationExecution.model.js";
+import IntegrationWebhookEvent from "./integrationWebhookEvent.model.js";
 import KnowledgeDocument from "./knowledgeDocument.model.js";
 import KnowledgeChunk from "./knowledgeChunk.model.js";
 import AuditLog from "./auditLog.model.js";
@@ -75,6 +77,8 @@ export {
   Integration,
   IntegrationAccount,
   IntegrationSync,
+  IntegrationExecution,
+  IntegrationWebhookEvent,
   KnowledgeDocument,
   KnowledgeChunk,
   AuditLog

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -29,11 +30,14 @@
     "uuid": "^14.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.4.1",
     "@types/uuid": "^10.0.0",
+    "eslint": "^10.10.0",
+    "jest": "^30.5.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }

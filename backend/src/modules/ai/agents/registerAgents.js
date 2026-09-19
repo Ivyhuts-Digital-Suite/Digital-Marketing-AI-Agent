@@ -1,6 +1,7 @@
 import agentRegistry from "./AgentRegistry.js";
 import ContentStudioAgent from "./ContentStudioAgent.js";
 import ExperimentationAgent from "../../experimentation/ExperimentationAgent.js";
+import CampaignAgent from "./CampaignAgent.js";
 
 /**
  * @file Registers all known agents with the shared AgentRegistry.
@@ -14,3 +15,4 @@ import ExperimentationAgent from "../../experimentation/ExperimentationAgent.js"
 
 agentRegistry.register(ContentStudioAgent);
 agentRegistry.register(ExperimentationAgent);
+agentRegistry.register(CampaignAgent);
