@@ -36,7 +36,7 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI);
   console.log("Connected to MongoDB");
 
   app.listen(PORT, () => {
